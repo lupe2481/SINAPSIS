@@ -25,7 +25,7 @@ Allteco: archivo proporcionado por la usuaria, aplicado a título, cifras, estad
 
 ## Cámara
 
-MediaPipe GestureRecognizer 0.10.22; carga bajo demanda de jsDelivr y modelo oficial de Google. Palma abierta revela la capa; puño cerrado la oculta. El cambio de año exige un nuevo ciclo puño/palma. Video local, sin almacenamiento ni envío de fotogramas. Se apaga al salir u ocultar la pestaña. Requiere HTTPS o localhost y autorización del navegador. La alternativa manual permite explorar sin cámara.
+MediaPipe GestureRecognizer 0.10.21; carga bajo demanda de jsDelivr y modelo oficial de Google. Palma abierta revela la capa; puño cerrado la oculta. El cambio de año exige un nuevo ciclo puño/palma. Video local, sin almacenamiento ni envío de fotogramas. Se apaga al salir u ocultar la pestaña. Requiere HTTPS o localhost y autorización del navegador. La alternativa manual permite explorar sin cámara.
 
 ## Verificación
 
