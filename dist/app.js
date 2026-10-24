@@ -89,7 +89,12 @@ function rebuild(animate=true,preserve=false,previousYear=2014){const previousId
  prepareStain();fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
 
 function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);needsFist=!!stream;rebuild(y>previousYear,true,previousYear)}
-function setMode(m){mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
+function setMode(m){closeCases();mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
+let casesOpen=false;
+function closeCases(){casesOpen=false;$('#scene').classList.remove('cases-open');$('#cases-view').hidden=true;$('#documented').classList.remove('active');$('#documented').setAttribute('aria-pressed','false')}
+function loadCaseMap(){const id=$('#case-map').value;$('#case-frame').src=`https://www.google.com/maps/d/embed?mid=${id}`;$('#case-external').href=`https://www.google.com/maps/d/viewer?mid=${id}`}
+$('#documented').onclick=()=>{if(stream)stopCamera();casesOpen=true;showTip(null);$('#scene').classList.add('cases-open');$('#cases-view').hidden=false;for(const id of ['national','states']){$('#'+id).classList.remove('active');$('#'+id).setAttribute('aria-pressed','false')}$('#documented').classList.add('active');$('#documented').setAttribute('aria-pressed','true');if(!$('#case-frame').getAttribute('src'))loadCaseMap()};
+$('#case-map').onchange=loadCaseMap;
 $('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;resetView();setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;resetView();rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;resetView();rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
 function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;woven.width=canvas.width;woven.height=canvas.height;display.setTransform(dpr,0,0,dpr,0,0);boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
@@ -115,7 +120,7 @@ function drawStain(){
  }
  stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
 }
-function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
+function draw(t){if(casesOpen){lastFrameTime=t;requestAnimationFrame(draw);return}frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
  if(settling&&!paused){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
  const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
