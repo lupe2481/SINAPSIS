@@ -1,3 +1,4 @@
+import {stateAtPosition} from './state-hit.js';
 import {demoName,advanceMotionClock} from './demo-names.js';
 import {documentedCases} from './documented.js';
 import {breathing, ambientPoint, fiberWave} from './ambient.js';
@@ -156,7 +157,7 @@ function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime
  if(settling){ctx.lineWidth=1.2;for(let y=2015;y<=year;y++){const g=grayForYear(y);ctx.strokeStyle=`rgba(${g},${g},${g},.24)`;ctx.beginPath();for(const p of points){if(!p.moving||p.delay>0||p.year!==y)continue;ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2.7,p.y-p.vy*2.7)}ctx.stroke()}}
  for(let y=2015;y<=year;y++){const g=grayForYear(y);for(const dim of [false,true]){ctx.fillStyle=dim?`rgb(${Math.round(g*.32+30)},${Math.round(g*.27+25)},${Math.round(g*.27+25)})`:`rgb(${g},${g},${g})`;ctx.beginPath();for(const p of points){if(p.year!==y||p.delay>0||dimmed.has(p.id)!==dim)continue;ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,Math.PI*2)}ctx.fill()}}
  ctx.strokeStyle='#e5e5e5';ctx.lineWidth=1;ctx.beginPath();for(const p of points)if(p.record&&p.delay<=0){ctx.moveTo(p.x+p.r+3,p.y);ctx.arc(p.x,p.y,p.r+3,0,Math.PI*2)}ctx.stroke();
- if(mode==='states'&&selected==='all'){ctx.font='9px "mozaic-geo-variable", sans-serif';ctx.textAlign='center';ctx.fillStyle='#aaa';for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8;const name=data.states[i].name;const x=W*.29+(col+.5)*W*.085,y=H*.14+(row+.5)*H*.16+H*.08;ctx.fillText(name.length>15?name.slice(0,13)+'…':name,x,y,W*.08)}}
+ if(mode==='states'&&selected==='all'){ctx.font='9px "mozaic-geo-variable", sans-serif';ctx.textAlign='center';ctx.fillStyle='#aaa';for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8;const name=data.states[i].name;const x=W*.29+(col+.5)*W*.083,y=H*.15+(row+1)*H*.155-2;ctx.fillText(name.length>15?name.slice(0,13)+'…':name,x,y,W*.08)}}
  if(hover){ctx.strokeStyle='#d73630';ctx.lineWidth=1.2;ctx.beginPath();for(const e of edges)if(e.a===hover||e.b===hover)pathEdge(e);ctx.stroke();ctx.fillStyle='#d3322c';ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+4,0,Math.PI*2);ctx.stroke()}
  ctx.restore();
  display.fillStyle='#050505';display.fillRect(0,0,W,H);
@@ -176,12 +177,19 @@ function positionTip(p){const pt=screenPoint(p),tw=240,th=235;$('#tooltip').styl
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};dragged=false;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{
  if(dragging){const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;if(Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>4)dragged=true;if(dragged&&view.scale>1){panBy(view,dx,dy,W,H);showTip(null)}dragging.x=e.clientX;dragging.y=e.clientY;canvas.style.cursor=view.scale>1?'grabbing':'default';return}
- const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};if(hover){const held=screenPoint(hover);if(Math.hypot(held.x-pointer.x,held.y-pointer.y)<Math.max(24,hover.r*view.scale+12)){canvas.style.cursor='crosshair';return}}let near=null,best=Infinity;for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),d=(q.x-pointer.x)**2+(q.y-pointer.y)**2;if(d<best&&d<Math.max(8,p.r*view.scale+3)**2){near=p;best=d}}showTip(near);canvas.style.cursor=near?'crosshair':view.scale>1?'grab':'default';
+ const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};if(hover){const held=screenPoint(hover);if(Math.hypot(held.x-pointer.x,held.y-pointer.y)<Math.max(24,hover.r*view.scale+12)){canvas.style.cursor='crosshair';return}}let near=null,best=Infinity;for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),d=(q.x-pointer.x)**2+(q.y-pointer.y)**2;if(d<best&&d<Math.max(8,p.r*view.scale+3)**2){near=p;best=d}}showTip(near);canvas.style.cursor=mode==='states'&&selected==='all'&&stateAtPointer(e)!==null?'pointer':near?'crosshair':view.scale>1?'grab':'default';
 });
 canvas.addEventListener('pointerup',e=>{dragging=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor=view.scale>1?'grab':'default'});
 canvas.addEventListener('pointercancel',()=>{dragging=null;dragged=true});
 canvas.addEventListener('pointerleave',()=>{canvas.style.cursor='default'});
-canvas.addEventListener('click',()=>{if(!dragged&&mode==='states'&&selected==='all'&&hover){selected=String(hover.state);zoom=1;resetView();rebuild()}});
+function stateAtPointer(e){
+ const r=canvas.getBoundingClientRect(),sy=e.clientY-r.top;
+ const sx=e.clientX-r.left-fiberWave(sy,motionClock,H,reduced);
+ const x=((sx-view.x)/view.scale-ambient.x)/ambient.a;
+ const y=((sy-view.y)/view.scale-ambient.y)/ambient.d;
+ return stateAtPosition(x,y,W,H);
+}
+canvas.addEventListener('click',e=>{if(dragged||mode!=='states'||selected!=='all')return;const state=stateAtPointer(e);if(state!==null){selected=String(state);zoom=1;resetView();rebuild()}});
 function gestureZoom(factor,clientX,clientY){const r=canvas.getBoundingClientRect();zoomAt(view,factor,clientX-r.left,clientY-r.top,W,H);showTip(null);canvas.style.cursor=view.scale>1?'grab':'default'}
 canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?H:1;gestureZoom(Math.exp(-e.deltaY*unit*(e.ctrlKey?.008:.002)),e.clientX,e.clientY)},{passive:false});
 // Safari exposes native trackpad pinch through gesture events.
