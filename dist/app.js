@@ -1,3 +1,4 @@
+import {demoName,advanceMotionClock} from './demo-names.js';
 import {documentedCases} from './documented.js';
 import {breathing, ambientPoint, fiberWave} from './ambient.js';
 import {project, zoomAt, panBy, boundView, clamp, stainScore} from './view.js';
@@ -11,7 +12,7 @@ for(let y=2;y<mask.height-2;y+=3)for(let x=2;x<mask.width-2;x+=3){if(pixels[(y*m
 const canvas=$('#network'),display=canvas.getContext('2d',{alpha:false}),woven=document.createElement('canvas'),ctx=woven.getContext('2d',{alpha:false});
 const view={x:0,y:0,scale:1};let dragging=null,dragged=false;
 let ambient={a:1,d:1,x:0,y:0};
-const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);const screen=project(q.x,q.y,W,H,view);screen.x+=fiberWave(screen.y,pulseClock,H,reduced);return screen};
+const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);const screen=project(q.x,q.y,W,H,view);screen.x+=fiberWave(screen.y,motionClock,H,reduced);return screen};
 function resetView(){Object.assign(view,{x:0,y:0,scale:1});canvas.style.cursor='default'}
 let year=2025,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -59,7 +60,7 @@ function prepareFibers(retainThrough=2014){
  const old=activeFibers.getContext('2d'),fresh=newFibers.getContext('2d');old.clearRect(0,0,mask.width,mask.height);fresh.clearRect(0,0,mask.width,mask.height);
  for(let y=2015;y<=year;y++){if(selected!=='all'&&!data.years[y].states[Number(selected)])continue;(y<=retainThrough?old:fresh).drawImage(cohortLayers[y-2015],0,0)}
 }
-let pulseClock=0,lastFrameTime=0;
+let pulseClock=0,motionClock=0,lastFrameTime=0;
 function drawFibers(t){
  const arrival=settling?Math.min(1,(180-settling)/85):1;
  const pulse=pulseFibers.getContext('2d');pulse.clearRect(0,0,mask.width,mask.height);
@@ -117,11 +118,11 @@ function drawStain(){
  }
  stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
 }
-function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
- if(settling&&!paused){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
+function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed*.65;motionClock=advanceMotionClock(motionClock,elapsed,paused,!!hover);
+ if(settling&&!paused&&!hover){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
  const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
- ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.scale,view.scale);ambient=breathing(pulseClock,W,H,reduced);ctx.transform(ambient.a,0,0,ambient.d,ambient.x,ambient.y);
+ ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.scale,view.scale);ambient=breathing(motionClock,W,H,reduced);ctx.transform(ambient.a,0,0,ambient.d,ambient.x,ambient.y);
  drawStain();
  drawFibers(t);
  // Fine branching fibers; year cohorts retain distinct gray values.
@@ -141,24 +142,24 @@ function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime
  // Two-pixel bands follow the same continuous field as pointer hit targets.
  // Distort the full tissue together so no point detaches from its branches.
  if(reduced)display.drawImage(woven,0,0,W,H);
- else for(let y=0;y<H;y+=2){const h=Math.min(2,H-y),dx=fiberWave(y+h/2,pulseClock,H);display.drawImage(woven,0,y*dpr,woven.width,h*dpr,dx,y,W,h)}
+ else for(let y=0;y<H;y+=2){const h=Math.min(2,H-y),dx=fiberWave(y+h/2,motionClock,H);display.drawImage(woven,0,y*dpr,woven.width,h*dpr,dx,y,W,h)}
  if(hover)positionTip(hover);
  requestAnimationFrame(draw)}
-function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;
+function showTip(p){if(p&&settling){settling=0;for(const q of points){q.x=q.tx;q.y=q.ty;q.vx=q.vy=0;q.moving=false;q.delay=0}}hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;
  if(p.record){$('#tooltip').innerHTML=`<div class="tip-title">CASO DOCUMENTADO · YO TE NOMBRO</div><div class="demo-person"><strong>${p.record.name}</strong><span>${p.record.source}</span></div><b>${name}</b><br>${p.record.municipality}<br>Año: <b>${p.year}</b><small>Registro de la fuente ciudadana.<br>No se suma al conteo del SESNSP.</small>`}
- else{$('#tooltip').innerHTML=`<div class="tip-title">REGISTRO AGREGADO · SESNSP</div><b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Sin nombre individual disponible.<br>Unidad de un conteo agregado.</small>`}
- positionTip(p);$('#tooltip').hidden=false}
+ else{$('#tooltip').innerHTML=`<div class="tip-title">FICHA DEL ATLAS</div><div class="demo-person"><strong>${demoName(p.id)}</strong><span class="fiction-note">Nombre ficticio · prueba</span></div><b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Entidad y año del conteo SESNSP.</small>`}
+ positionTip(p);$('#tooltip').insertAdjacentHTML('beforeend','<span class=tip-hint>Esc para cerrar · mueve el cursor para explorar</span>');$('#tooltip').hidden=false}
 let documentedIndex=-1;
 $('#documented-names').onclick=()=>{const names=points.filter(p=>p.record);if(!names.length)return;documentedIndex=(documentedIndex+1)%names.length;const p=names[documentedIndex];zoomAt(view,Math.max(1,1.5/view.scale),W*.6,H*.5,W,H);const q=screenPoint(p);panBy(view,W*.6-q.x,H*.48-q.y,W,H);showTip(p)};
-function positionTip(p){const pt=screenPoint(p),tw=240,th=p.record?235:150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
+function positionTip(p){const pt=screenPoint(p),tw=240,th=235;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};dragged=false;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{
  if(dragging){const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;if(Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>4)dragged=true;if(dragged&&view.scale>1){panBy(view,dx,dy,W,H);showTip(null)}dragging.x=e.clientX;dragging.y=e.clientY;canvas.style.cursor=view.scale>1?'grabbing':'default';return}
- const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};let near=null,best=Infinity;for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),d=(q.x-pointer.x)**2+(q.y-pointer.y)**2;if(d<best&&d<Math.max(8,p.r*view.scale+3)**2){near=p;best=d}}showTip(near);canvas.style.cursor=near?'crosshair':view.scale>1?'grab':'default';
+ const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};if(hover){const held=screenPoint(hover);if(Math.hypot(held.x-pointer.x,held.y-pointer.y)<Math.max(24,hover.r*view.scale+12)){canvas.style.cursor='crosshair';return}}let near=null,best=Infinity;for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),d=(q.x-pointer.x)**2+(q.y-pointer.y)**2;if(d<best&&d<Math.max(8,p.r*view.scale+3)**2){near=p;best=d}}showTip(near);canvas.style.cursor=near?'crosshair':view.scale>1?'grab':'default';
 });
 canvas.addEventListener('pointerup',e=>{dragging=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor=view.scale>1?'grab':'default'});
 canvas.addEventListener('pointercancel',()=>{dragging=null;dragged=true});
-canvas.addEventListener('pointerleave',()=>{if(!dragging)showTip(null)});
+canvas.addEventListener('pointerleave',()=>{canvas.style.cursor='default'});
 canvas.addEventListener('click',()=>{if(!dragged&&mode==='states'&&selected==='all'&&hover){selected=String(hover.state);zoom=1;resetView();rebuild()}});
 function gestureZoom(factor,clientX,clientY){const r=canvas.getBoundingClientRect();zoomAt(view,factor,clientX-r.left,clientY-r.top,W,H);showTip(null);canvas.style.cursor=view.scale>1?'grab':'default'}
 canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?H:1;gestureZoom(Math.exp(-e.deltaY*unit*(e.ctrlKey?.008:.002)),e.clientX,e.clientY)},{passive:false});

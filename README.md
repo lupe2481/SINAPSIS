@@ -49,3 +49,6 @@ El tejido respira y se desplaza suavemente en 2D, sin perspectiva ni rotación. 
 
 ### Nombres dentro del atlas
 Se retiraron la tercera pestaña y los mapas incrustados. Cinco casos de 2016 fueron verificados manualmente en las fichas públicas de Yo te nombro y se muestran como puntos con contorno en el tejido existente. `dist/documented.js` conserva nombre, entidad, municipio, año y referencia. No son unidades identificadas del SESNSP ni se suman a los contadores. Se retiraron los nombres ficticios. La descarga KML pública devolvió HTTP 403; no se importó la base completa.
+
+### Prueba de nombres y lectura
+Los puntos agregados muestran alias ficticios estables en ambos modos, con nota discreta de 8 px. Los cinco nombres reales conservan su fuente. Los alias no se exportan como datos oficiales. La ondulación y respiración avanzan al 20% de su velocidad anterior; al consultar una ficha se congelan el tejido y la entrada de partículas, mientras la luz continúa. Una tolerancia de selección evita perder el punto por movimientos pequeños del cursor. Escape cierra la ficha.
