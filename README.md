@@ -41,3 +41,6 @@ Los puntos conservan radio, tono y posición al avanzar la línea del tiempo. So
 Verificación adicional: `node scripts/motion.test.mjs` comprueba persistencia, incorporación acumulativa, rebotes entre partículas, rebotes contra partículas retenidas, asentamiento y movimiento reducido. Referencia de movimiento: video proporcionado por la usuaria el 23 de octubre de 2026.
 
 Al seleccionar una entidad, la cámara gráfica amplía 2,7 veces una región del tejido. Cada entidad usa un recorte estable y sus puntos se distribuyen sobre las fibras de ese recorte. La vista de las 32 entidades conserva las miniaturas completas para orientarse.
+
+### Movimiento y percepción
+Arrastrar gira la superficie curva del atlas con inercia. Dos dedos o la rueda inclinan; pellizcar acerca o aleja. Los controles de zoom y restablecer siguen disponibles. La red ondula y respira continuamente, con pulsos radiales y señales que recorren las conexiones. Pausa y movimiento reducido detienen el movimiento automático. La mancha aparece detrás, se extiende desde el centro con bordes difusos y atenúa los puntos sin ocultarlos.

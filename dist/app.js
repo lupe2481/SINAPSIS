@@ -1,3 +1,4 @@
+import {createSurface, clamp, stainScore} from './view.js';
 import {grayForYear, enterParticles, stepParticles} from './motion.js';
 const $=s=>document.querySelector(s), fmt=n=>n.toLocaleString('es-MX');
 let data;
@@ -5,7 +6,9 @@ try{const response=await fetch('./data.json');if(!response.ok)throw Error();data
 const neuralImage=new Image();neuralImage.src='./assets/neuronal-reference.svg';await neuralImage.decode();
 const mask=document.createElement('canvas');mask.width=1800;mask.height=1275;const maskCtx=mask.getContext('2d',{willReadFrequently:true});maskCtx.drawImage(neuralImage,0,0,mask.width,mask.height);const pixels=maskCtx.getImageData(0,0,mask.width,mask.height).data;const fibers=[],fiberGroups=Array.from({length:32},()=>[]);
 for(let y=2;y<mask.height-2;y+=3)for(let x=2;x<mask.width-2;x+=3){if(pixels[(y*mask.width+x)*4+3]>100){const pt={x:x/mask.width,y:y/mask.height};fibers.push(pt);const col=Math.min(7,Math.floor(x/mask.width*8)),row=Math.min(3,Math.floor(y/mask.height*4));fiberGroups[row*8+col].push(pt)}}
-const canvas=$('#network'),ctx=canvas.getContext('2d',{alpha:false});
+const canvas=$('#network'),surface=createSurface(canvas),sceneCanvas=document.createElement('canvas'),ctx=sceneCanvas.getContext('2d',{alpha:false});
+const view={yaw:0,pitch:0,scale:1,vx:0,vy:0};let dragging=null,dragged=false;
+const screenPoint=p=>surface.project(p.x,p.y,W,H,view,pulseClock);
 let year=2025,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed=381;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
@@ -57,11 +60,11 @@ function drawFibers(t){
  const pulse=pulseFibers.getContext('2d');pulse.clearRect(0,0,mask.width,mask.height);
  pulse.globalAlpha=1;pulse.drawImage(activeFibers,0,0);pulse.globalAlpha=arrival;pulse.drawImage(newFibers,0,0);pulse.globalAlpha=1;
  if(!paused&&!reduced){
-  // A narrow traveling front crosses every active fiber once per 1.45 seconds.
-  // source-in keeps its light strictly inside the neuronal connections.
-  const phase=(pulseClock%1450)/1450,start=-230+phase*(mask.width+460);
-  pulse.globalCompositeOperation='source-in';const beam=pulse.createLinearGradient(start-120,0,start+120,0);
-  beam.addColorStop(0,'rgba(255,255,255,0)');beam.addColorStop(.27,'rgba(255,255,255,.08)');beam.addColorStop(.48,'rgba(255,255,255,.8)');beam.addColorStop(.57,'rgba(255,255,255,1)');beam.addColorStop(.7,'rgba(255,255,255,.3)');beam.addColorStop(1,'rgba(255,255,255,0)');pulse.fillStyle=beam;pulse.fillRect(0,0,mask.width,mask.height);pulse.globalCompositeOperation='source-over';
+  const radius=(pulseClock%1900)/1900*1600;
+  pulse.globalCompositeOperation='source-in';const beam=pulse.createRadialGradient(mask.width*.53,mask.height*.5,0,mask.width*.53,mask.height*.5,1800);
+  const center=radius/1800;beam.addColorStop(0,'rgba(255,255,255,0)');
+  for(const [offset,alpha] of [[-.065,0],[-.025,.2],[0,1],[.018,.6],[.06,0]])beam.addColorStop(clamp(center+offset,.00001,.99999),`rgba(255,255,255,${alpha})`);
+  beam.addColorStop(1,'rgba(255,255,255,0)');pulse.fillStyle=beam;pulse.fillRect(0,0,mask.width,mask.height);pulse.globalCompositeOperation='source-over';
  }else pulse.clearRect(0,0,mask.width,mask.height);
  ctx.save();ctx.translate(W*.58,H*.46);ctx.scale(zoom,zoom);ctx.translate(-W*.58,-H*.46);
  const drawAt=(x,y,w,h)=>{
@@ -80,42 +83,69 @@ function rebuild(animate=true,preserve=false,previousYear=2014){const previousId
  const moving=animate&&!reduced&&!paused;
  const newCount=enterParticles(points,previousIds,{animate:moving,preserve,width:W,height:H});
  settling=newCount?180:0;prepareFibers(preserve?previousYear:2014);
- fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
+ prepareStain();fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
 
 function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);needsFist=!!stream;rebuild(y>previousYear,true,previousYear)}
 function setMode(m){mode=m;selected='all';zoom=1;setFear(false);rebuild()}
 $('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
-function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
+function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;sceneCanvas.width=canvas.width;sceneCanvas.height=canvas.height;ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
 function pathEdge(e){const {a,b}=e;ctx.moveTo(a.x,a.y);const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;const amplitude=Math.min(4,len*.035);for(let j=1;j<=7;j++){const f=j/7,noise=Math.sin(j*2.8+a.jitter*30)*amplitude*Math.sin(f*Math.PI);ctx.lineTo(a.x+dx*f-dy/len*noise,a.y+dy*f+dx/len*noise)}if(len>32){const f=.43,x=a.x+dx*f,y=a.y+dy*f;ctx.moveTo(x,y);ctx.lineTo(x-dy*.12+dx*.07,y+dx*.12+dy*.07);ctx.lineTo(x-dy*.21+dx*.04,y+dx*.21+dy*.04)}}
-const ripple=y=>Math.sin(y*.013)*27+Math.sin(y*.031)*13;const fearScore=p=>p.tx+ripple(p.ty);let fearSorted=[],fearThreshold=Infinity;
-function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
+let fearCenter={x:0,y:0},fearSorted=[],fearThreshold=-1,dimmed=new Set();
+const fearScore=p=>stainScore(p.tx,p.ty,fearCenter.x,fearCenter.y,W,H);
+const stain=document.createElement('canvas');stain.width=280;stain.height=180;
+const stainCtx=stain.getContext('2d'),stainImage=stainCtx.createImageData(280,180),stainField=new Float32Array(280*180);
+function prepareStain(){
+ const visible=points.filter(p=>p.tx>0&&p.tx<W&&p.ty>0&&p.ty<H);
+ fearCenter=visible.length?{x:visible.reduce((n,p)=>n+p.tx,0)/visible.length,y:visible.reduce((n,p)=>n+p.ty,0)/visible.length}:{x:W*.6,y:H*.5};
+ for(let y=0;y<180;y++)for(let x=0;x<280;x++)stainField[y*280+x]=stainScore(x/280*W,y/180*H,fearCenter.x,fearCenter.y,W,H);
+}
+function drawStain(){
+ const amount=Math.round(points.length*data.years[year].perception/100*fearProgress);
+ dimmed=new Set(fearSorted.slice(0,amount).map(p=>p.id));
+ fearThreshold=amount?fearScore(fearSorted[amount-1]):-1;
+ if(!amount)return;
+ for(let y=0;y<180;y++)for(let x=0;x<280;x++){
+  const k=y*280+x,i=k*4,edge=clamp((fearThreshold-stainField[k])/.16+.25,0,1);
+  const grain=.62+.15*Math.sin(x*.19+Math.sin(y*.12)*3)+.12*Math.cos(y*.27+x*.13)+.07*Math.sin(x*1.9+y*2.7);
+  stainImage.data[i]=112;stainImage.data[i+1]=12;stainImage.data[i+2]=17;stainImage.data[i+3]=255*edge*grain*.82*fearProgress;
+ }
+ stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
+}
+function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused){pulseClock+=elapsed;if(!dragging){view.yaw=clamp(view.yaw+view.vx*elapsed/16.67,-.7,.7);view.pitch=clamp(view.pitch+view.vy*elapsed/16.67,-.42,.42);view.vx*=Math.pow(.93,elapsed/16.67);view.vy*=Math.pow(.93,elapsed/16.67)}}
  if(settling&&!paused){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
  const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
  ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);
- if(fearProgress>0&&points.length){const amount=Math.round(points.length*data.years[year].perception/100*fearProgress);fearThreshold=fearSorted[Math.max(0,points.length-amount)]?fearScore(fearSorted[Math.max(0,points.length-amount)]):W+100;const gradient=ctx.createLinearGradient(Math.max(0,fearThreshold-35),0,W,0);gradient.addColorStop(0,'#050505');gradient.addColorStop(.15,'#290606');gradient.addColorStop(1,'#650d0b');ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(W,0);for(let y=0;y<=H+10;y+=10)ctx.lineTo(fearThreshold-ripple(y)-15,y);ctx.lineTo(W,H);ctx.closePath();ctx.fill()}else fearThreshold=Infinity;
+ drawStain();
  drawFibers(t);
  // Fine branching fibers; year cohorts retain distinct gray values.
  for(let y=2015;y<=year;y++){const gray=grayForYear(y);ctx.strokeStyle=`rgb(${gray} ${gray} ${gray} / .40)`;ctx.lineWidth=mode==='states'&&selected!=='all'?.85:.55;ctx.beginPath();for(const e of edges)if(e.a.year===y&&Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)<180)pathEdge(e);ctx.stroke()}
 
  if(!paused&&!reduced){
- const scan=-230+(pulseClock%1450)/1450*(mask.width+460);
- const beamX=W*.58+(imageRect.x+scan/mask.width*imageRect.w-W*.58)*zoom;
- const beamWidth=imageRect.w/mask.width*65*zoom;
- ctx.save();ctx.beginPath();ctx.rect(beamX-beamWidth,0,beamWidth*2,H);ctx.clip();
- ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.15;ctx.shadowColor='#fff';ctx.shadowBlur=5;ctx.beginPath();
- for(const e of edges){if(Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)<180&&Math.max(e.a.x,e.b.x)>beamX-beamWidth&&Math.min(e.a.x,e.b.x)<beamX+beamWidth)pathEdge(e)}ctx.stroke();ctx.restore();
+ ctx.save();ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.25;ctx.shadowColor='#fff';ctx.shadowBlur=7;ctx.beginPath();
+ for(const e of edges){if(dimmed.has(e.a.id)||Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)>180)continue;const phase=(pulseClock/820+e.a.jitter)%1,dx=e.b.x-e.a.x,dy=e.b.y-e.a.y;ctx.moveTo(e.a.x+dx*phase,e.a.y+dy*phase);const end=Math.min(1,phase+.16);ctx.lineTo(e.a.x+dx*end,e.a.y+dy*end)}ctx.stroke();ctx.restore();
  }
- if(fearProgress>0){ctx.fillStyle='#41090988';ctx.beginPath();ctx.moveTo(W,0);for(let y=0;y<=H+10;y+=10)ctx.lineTo(fearThreshold-ripple(y),y);ctx.lineTo(W,H);ctx.closePath();ctx.fill()}
  if(settling){ctx.lineWidth=1.2;for(let y=2015;y<=year;y++){const g=grayForYear(y);ctx.strokeStyle=`rgba(${g},${g},${g},.24)`;ctx.beginPath();for(const p of points){if(!p.moving||p.delay>0||p.year!==y)continue;ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2.7,p.y-p.vy*2.7)}ctx.stroke()}}
- for(let y=2015;y<=year;y++){const g=grayForYear(y);for(const dim of [false,true]){ctx.fillStyle=dim?'#491310':`rgb(${g},${g},${g})`;ctx.beginPath();for(const p of points){if(p.year!==y||p.delay>0||(fearScore(p)>=fearThreshold)!==dim)continue;ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,Math.PI*2)}ctx.fill()}}
+ for(let y=2015;y<=year;y++){const g=grayForYear(y);for(const dim of [false,true]){ctx.fillStyle=dim?`rgb(${Math.round(g*.32+30)},${Math.round(g*.27+25)},${Math.round(g*.27+25)})`:`rgb(${g},${g},${g})`;ctx.beginPath();for(const p of points){if(p.year!==y||p.delay>0||dimmed.has(p.id)!==dim)continue;ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,Math.PI*2)}ctx.fill()}}
  if(mode==='states'&&selected==='all'){ctx.font='9px "mozaic-geo-variable", sans-serif';ctx.textAlign='center';ctx.fillStyle='#aaa';for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8;const name=data.states[i].name;const x=W*.29+(col+.5)*W*.085,y=H*.14+(row+.5)*H*.16+H*.08;ctx.fillText(name.length>15?name.slice(0,13)+'…':name,x,y,W*.08)}}
  if(hover){ctx.strokeStyle='#d73630';ctx.lineWidth=1.2;ctx.beginPath();for(const e of edges)if(e.a===hover||e.b===hover)pathEdge(e);ctx.stroke();ctx.fillStyle='#d3322c';ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+4,0,Math.PI*2);ctx.stroke()}
+ surface.render(sceneCanvas,W,H,view,pulseClock);if(hover)positionTip(hover);
  requestAnimationFrame(draw)}
-function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;$('#tooltip').innerHTML=`<div class="tip-title">UNA VIDA EN EL REGISTRO</div><b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Unidad de un conteo agregado.<br>Sin identificación individual disponible.</small>`;const tw=220,th=150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,p.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,p.y-35))}px`;$('#tooltip').hidden=false}
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};let near=null,best=100;for(const p of points){const d=(p.x-pointer.x)**2+(p.y-pointer.y)**2;if(d<best){near=p;best=d}}showTip(near);canvas.style.cursor=near?'crosshair':'default'});canvas.addEventListener('pointerleave',()=>showTip(null));canvas.addEventListener('click',()=>{if(mode==='states'&&selected==='all'&&hover){selected=String(hover.state);zoom=1;rebuild()}});canvas.onkeydown=e=>{if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex])}};
-for(const [selector,action]of [['#zoom-in',()=>zoom=Math.min(2.6,zoom+.2)],['#zoom-out',()=>zoom=Math.max(.6,zoom-.2)],['#reset',()=>zoom=1]])$(selector).onclick=()=>{action();rebuild(false)};
+function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;$('#tooltip').innerHTML=`<div class="tip-title">UNA VIDA EN EL REGISTRO</div><b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Unidad de un conteo agregado.<br>Sin identificación individual disponible.</small>`;positionTip(p);$('#tooltip').hidden=false}
+function positionTip(p){const pt=screenPoint(p),tw=220,th=150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};dragged=false;view.vx=view.vy=0;canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{
+ if(dragging){const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;if(Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>4)dragged=true;if(dragged){view.vx=dx*.003;view.vy=dy*.003;view.yaw=clamp(view.yaw+view.vx,-.7,.7);view.pitch=clamp(view.pitch+view.vy,-.42,.42);showTip(null)}dragging.x=e.clientX;dragging.y=e.clientY;canvas.style.cursor='grabbing';return}
+ const r=canvas.getBoundingClientRect();pointer={x:e.clientX-r.left,y:e.clientY-r.top};let near=null,best=100;for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),d=(q.x-pointer.x)**2+(q.y-pointer.y)**2;if(d<best){near=p;best=d}}showTip(near);canvas.style.cursor=near?'crosshair':'grab';
+});
+canvas.addEventListener('pointerup',e=>{dragging=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab'});
+canvas.addEventListener('pointercancel',()=>{dragging=null;dragged=true;view.vx=view.vy=0});
+canvas.addEventListener('pointerleave',()=>{if(!dragging)showTip(null)});
+canvas.addEventListener('click',()=>{if(!dragged&&mode==='states'&&selected==='all'&&hover){selected=String(hover.state);zoom=1;rebuild()}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();showTip(null);if(e.ctrlKey){view.scale=clamp(view.scale*Math.exp(-e.deltaY*.008),.65,2.2)}else{const unit=e.deltaMode===1?16:1;view.yaw=clamp(view.yaw+e.deltaX*unit*.002,-.7,.7);view.pitch=clamp(view.pitch+e.deltaY*unit*.002,-.42,.42)}},{passive:false});
+canvas.onkeydown=e=>{if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex])}};
+for(const [selector,action]of [['#zoom-in',()=>zoom=Math.min(2.6,zoom+.2)],['#zoom-out',()=>zoom=Math.max(.6,zoom-.2)],['#reset',()=>{zoom=1;Object.assign(view,{yaw:0,pitch:0,scale:1,vx:0,vy:0})}]])$(selector).onclick=()=>{action();rebuild(false)};
 $('#pause').onclick=()=>{paused=!paused;if(paused){settling=0;for(const p of points){p.x=p.tx;p.y=p.ty;p.moving=false;p.delay=0}}updateUI()};
 function setFear(value){if(fear===value)return;fear=value;fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));$('#fear-reading').hidden=!fear;$('#manual').textContent=fear?'Ocultar percepción':'Mostrar sin cámara';$('#manual').setAttribute('aria-pressed',fear)}
 $('#perception-button').onclick=()=>{const open=$('#perception-controls').hidden;$('#perception-controls').hidden=!open;$('#perception-button').setAttribute('aria-expanded',open);$('.plus').textContent=open?'−':'+'};$('#manual').onclick=()=>setFear(!fear);

@@ -5,3 +5,5 @@ nav button{font-family:Allteco,Arial,sans-serif;font-size:13px;letter-spacing:.1
 @media(max-width:700px){nav button{font-size:11px}.perception{top:24px}.statistics{max-width:170px}.statistics:before{inset:-8px -20px}.state-panel{max-width:210px}.state-panel:before,.country-caption:before{inset:-8px -18px}.view-label{display:block;top:auto;bottom:59px;left:70px;right:auto;font-size:7px}.canvas-controls{bottom:78px}.state-panel{bottom:122px}.country-caption{bottom:123px}}
 
 .cohort-key{display:flex;gap:10px;align-items:center;font-size:8px;color:#aaa}.cohort-key>span{display:flex;align-items:center;gap:3px}.cohort-key i{width:5px;height:5px;border-radius:50%}@media(max-width:1100px){.cohort-key{gap:6px;font-size:7px}}@media(max-width:900px){.cohort-key{display:none}}
+
+#network{touch-action:none;cursor:grab}.motion-hint{position:absolute;bottom:82px;right:28px;font-size:8px;letter-spacing:.12em;color:#999;pointer-events:none}
