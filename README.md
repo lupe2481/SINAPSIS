@@ -33,3 +33,11 @@ MediaPipe GestureRecognizer 0.10.21; carga bajo demanda de jsDelivr y modelo ofi
 `node scripts/validate.mjs`
 
 Revisión visual y funcional en el navegador: nacional, agrupaciones, Nuevo León, 2015/2025/2026, percepción manual, reinicio de la capa y metodología. Reconocimiento físico de gestos pendiente de prueba con cámara autorizada.
+
+## Animación acumulativa
+
+Los puntos conservan radio, tono y posición al avanzar la línea del tiempo. Solo los registros nuevos entran desde los bordes con velocidad, estelas y colisiones elásticas. Los registros ya asentados actúan como obstáculos fijos. Al retroceder se ocultan los años posteriores. Se usan 12 tonos fijos, compartidos entre puntos y fibras, con una leyenda por año. El trazado SVG se divide en capas persistentes; un pulso luminoso recorre todas las fibras activas cada 1,45 segundos. La pausa y la preferencia de movimiento reducido detienen los pulsos y las colisiones.
+
+Verificación adicional: `node scripts/motion.test.mjs` comprueba persistencia, incorporación acumulativa, rebotes entre partículas, rebotes contra partículas retenidas, asentamiento y movimiento reducido. Referencia de movimiento: video proporcionado por la usuaria el 23 de octubre de 2026.
+
+Al seleccionar una entidad, la cámara gráfica amplía 2,7 veces una región del tejido. Cada entidad usa un recorte estable y sus puntos se distribuyen sobre las fibras de ese recorte. La vista de las 32 entidades conserva las miniaturas completas para orientarse.

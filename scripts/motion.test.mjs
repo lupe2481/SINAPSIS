@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {grayForYear,enterParticles,collideParticles,stepParticles} from '../dist/motion.js';
+const make=(id,year,x=100)=>({id,year,jitter:.5,x,y:100,tx:x,ty:100,r:4,vx:0,vy:0,moving:false,delay:0});
+const previous=make(1,2015),incoming=make(2,2016,125);
+const before=structuredClone(previous);
+assert.equal(enterParticles([previous,incoming],new Set([1]),{animate:true,preserve:true,width:1280,height:630}),1);
+assert.deepEqual(previous,before,'Retained particles must keep their position, radius, velocity and state');
+assert.notEqual(incoming.x,incoming.tx,'New particles enter from outside the tissue');
+assert.ok(Math.hypot(incoming.vx,incoming.vy)>10);
+for(let i=180;i>0;i--)stepParticles([previous,incoming],i);
+assert.equal(previous.x,before.x);assert.equal(previous.y,before.y);
+assert.ok(Math.hypot(incoming.x-incoming.tx,incoming.y-incoming.ty)<1,'New particles settle toward their destination');
+const stationary=make(3,2015,100),ball=make(4,2016,106);ball.moving=true;ball.vx=-5;
+assert.ok(collideParticles([stationary,ball])>0);
+assert.ok(ball.vx>0,'An incoming particle bounces away from an existing one');
+assert.equal(stationary.x,100);assert.equal(stationary.vx,0);
+const a=make(5,2015,100),b=make(6,2015,106);a.moving=b.moving=true;a.vx=4;b.vx=-4;
+collideParticles([a,b]);assert.ok(a.vx<0&&b.vx>0,'Two moving particles exchange momentum');
+const shades=Array.from({length:12},(_,i)=>grayForYear(2015+i));assert.equal(new Set(shades).size,12);assert.ok(shades.every((g,i)=>g>=0&&g<=255&&(!i||g>shades[i-1])));
+const reduced=make(7,2020);enterParticles([reduced],new Set(),{animate:false,preserve:false,width:1280,height:630});assert.equal(reduced.x,reduced.tx);assert.equal(reduced.moving,false);
+// Advancing the cumulative data admits exactly the new annual records.
+const {readFileSync}=await import('node:fs');const data=JSON.parse(readFileSync(new URL('../dist/data.json',import.meta.url)));
+const counts=y=>Object.entries(data.years).filter(([k])=>Number(k)<=y).reduce((sum,[,v])=>sum+v.total,0);
+for(let y=2016;y<=2026;y++)assert.equal(counts(y)-counts(y-1),data.years[y].total);
+console.log('PASS: persistent positions and radius, 12 stable grays, elastic collisions, settling, reduced motion and cumulative increments.');
