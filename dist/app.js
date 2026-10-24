@@ -1,4 +1,5 @@
-import {breathing, ambientPoint, demoName, fiberWave} from './ambient.js';
+import {documentedCases} from './documented.js';
+import {breathing, ambientPoint, fiberWave} from './ambient.js';
 import {project, zoomAt, panBy, boundView, clamp, stainScore} from './view.js';
 import {grayForYear, enterParticles, stepParticles} from './motion.js';
 const $=s=>document.querySelector(s), fmt=n=>n.toLocaleString('es-MX');
@@ -17,6 +18,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed=381;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 const all=[];let id=0;
 for(const state of data.states){seed=state.id*15731;for(let y=2015;y<=2026;y++){for(let i=0;i<data.years[y].states[state.id];i++){const a=rand()*Math.PI*2,r=Math.sqrt(rand());all.push({id:id++,state:state.id,year:y,u:Math.cos(a)*r,v:Math.sin(a)*r,jitter:rand(),x:0,y:0,vx:0,vy:0,tx:0,ty:0,r:1})}}}
+for(const [index,record] of documentedCases.entries()){const jitter=((index+1)*.61803398875)%1;all.push({id:100000+index,state:record.state,year:record.year,record,jitter,u:0,v:0,x:0,y:0,vx:0,vy:0,tx:0,ty:0,r:1})}
 for(let y=2015;y<=2026;y++){const b=document.createElement('button');b.textContent=y;b.dataset.year=y;b.setAttribute('aria-label',`Año ${y}${y===2026?', enero a septiembre':''}`);b.onclick=()=>changeYear(y);$('#years').append(b)}
 const stateCrops=data.states.map((state,i)=>({cx:Math.max(.24,Math.min(.78,(i%8+.5)/8)),cy:Math.max(.28,Math.min(.76,(Math.floor(i/8)+.5)/4))}));
 const stateFibers=stateCrops.map(c=>fibers.filter(p=>Math.abs(p.x-c.cx)<.14&&Math.abs(p.y-c.cy)<.15));
@@ -26,7 +28,7 @@ for(const s of data.states){const o=document.createElement('option');o.value=s.i
 function currentState(){return data.states.find(s=>s.id===Number(selected))}
 function accumulated(state){let n=0;for(let y=2015;y<=year;y++)n+=state?data.years[y].states[state]:data.years[y].total;return n}
 function updateCohortLegend(){const key=$('#cohort-key');if(!key)return;key.innerHTML='';for(let y=2015;y<=year;y++){const item=document.createElement('span'),g=grayForYear(y);item.innerHTML=`<i style="background:rgb(${g},${g},${g})"></i>${y}`;key.append(item)}}
-function updateUI(){const state=currentState();$('#year').textContent=year;$('#annual').textContent=fmt(state?data.years[year].states[state.id]:data.years[year].total);$('#annual-label').textContent=year===2026?'víctimas · enero a septiembre':'víctimas registradas en el año';$('#scope').textContent=state?'VISTA ESTATAL':'REPÚBLICA MEXICANA';$('#total').textContent=fmt(accumulated(state?.id));$('#total-label').textContent='Acumulado desde 2015';$('#partial').hidden=year!==2026||mode==='states';$('#state-panel').hidden=mode!=='states';$('#state-name').textContent=state?.name||'32 entidades';$('#all-states').hidden=selected==='all';$('#state-select').value=selected;$('#view-title').textContent=state?`TOTAL NACIONAL ${year} / ${fmt(data.years[year].total)}`:'ATLAS NEURONAL / MÉXICO';$('#legend-years').textContent=`2015 — ${year}`;updateCohortLegend();for(const b of $('#years').children){const active=Number(b.dataset.year)===year;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',active)}for(const m of ['national','states']){$('#'+m).classList.toggle('active',mode===m);$('#'+m).setAttribute('aria-pressed',mode===m)}$('#fear-value').innerHTML=`${data.years[year].perception.toFixed(1)}<span>%</span>`;$('#fear-period').textContent=`INEGI · ENVIPE ${year} · dato nacional`;$('#pause').setAttribute('aria-pressed',paused);$('#pause').textContent=paused?'▷':'Ⅱ'}
+function updateUI(){const state=currentState();$('#year').textContent=year;$('#annual').textContent=fmt(state?data.years[year].states[state.id]:data.years[year].total);$('#annual-label').textContent=year===2026?'víctimas · enero a septiembre':'víctimas registradas en el año';$('#scope').textContent=state?'VISTA ESTATAL':'REPÚBLICA MEXICANA';$('#total').textContent=fmt(accumulated(state?.id));$('#total-label').textContent='Acumulado desde 2015';$('#partial').hidden=year!==2026||mode==='states';$('#state-panel').hidden=mode!=='states';$('#state-name').textContent=state?.name||'32 entidades';$('#all-states').hidden=selected==='all';$('#state-select').value=selected;$('#view-title').textContent=state?`TOTAL NACIONAL ${year} / ${fmt(data.years[year].total)}`:'ATLAS NEURONAL / MÉXICO';$('#legend-years').textContent=`2015 — ${year}`;updateCohortLegend();for(const b of $('#years').children){const active=Number(b.dataset.year)===year;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',active)}for(const m of ['national','states']){$('#'+m).classList.toggle('active',mode===m);$('#'+m).setAttribute('aria-pressed',mode===m)}$('#fear-value').innerHTML=`${data.years[year].perception.toFixed(1)}<span>%</span>`;$('#fear-period').textContent=`INEGI · ENVIPE ${year} · dato nacional`;const names=points.filter(p=>p.record);$('#documented-names').hidden=!names.length;$('#documented-names').textContent=`○ ${names.length} nombres documentados`;$('#pause').setAttribute('aria-pressed',paused);$('#pause').textContent=paused?'▷':'Ⅱ'}
 let imageRect={x:0,y:0,w:0,h:0};
 function geometry(){const single=mode==='states'&&selected!=='all';const nw=Math.max(W*.98,H*1.43);imageRect={x:W*.15,y:H*.025,w:nw,h:nw*1894.97/2675.91};if(single){const crop=stateCrops[Number(selected)-1];const width=nw*2.7,height=width*1894.97/2675.91;imageRect={x:W*.64-crop.cx*width,y:H*.47-crop.cy*height,w:width,h:height}}clusters=[];
 for(const p of points){let tx,ty;if(single){tx=imageRect.x+p.sx*imageRect.w;ty=imageRect.y+p.sy*imageRect.h;p.r=5.6+p.jitter*.8}else if(mode==='states'){const row=Math.floor((p.state-1)/8),col=(p.state-1)%8;const cw=W*.083,ch=H*.155,cx=W*.29+(col+.5)*cw,cy=H*.15+(row+.5)*ch;tx=cx+(p.ox-.5)*cw*.9;ty=cy+(p.oy-.5)*ch*.85;p.r=1.7+p.jitter*.35}else{tx=imageRect.x+p.nx*imageRect.w;ty=imageRect.y+p.ny*imageRect.h;p.r=3.25+p.jitter*.7}p.tx=W*.58+(tx-W*.58)*zoom;p.ty=H*.46+(ty-H*.46)*zoom;p.r*=Math.sqrt(zoom)}
@@ -36,7 +38,7 @@ for(const p of points){let tx,ty;if(single){tx=imageRect.x+p.sx*imageRect.w;ty=i
 const cohortLayers=[];
 function buildCohortLayers(){
  const w=mask.width,h=mask.height,cell=22,grid=new Map();
- for(const p of all){const gx=Math.floor(p.nx*w/cell),gy=Math.floor(p.ny*h/cell),key=`${gx},${gy}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push(p)}
+ for(const p of all.filter(p=>!p.record)){const gx=Math.floor(p.nx*w/cell),gy=Math.floor(p.ny*h/cell),key=`${gx},${gy}`;if(!grid.has(key))grid.set(key,[]);grid.get(key).push(p)}
  const images=Array.from({length:12},()=>maskCtx.createImageData(w,h));
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
   const offset=(y*w+x)*4,alpha=pixels[offset+3];if(alpha<12)continue;
@@ -89,12 +91,7 @@ function rebuild(animate=true,preserve=false,previousYear=2014){const previousId
  prepareStain();fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
 
 function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);needsFist=!!stream;rebuild(y>previousYear,true,previousYear)}
-function setMode(m){closeCases();mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
-let casesOpen=false;
-function closeCases(){casesOpen=false;$('#scene').classList.remove('cases-open');$('#cases-view').hidden=true;$('#documented').classList.remove('active');$('#documented').setAttribute('aria-pressed','false')}
-function loadCaseMap(){const id=$('#case-map').value;$('#case-frame').src=`https://www.google.com/maps/d/embed?mid=${id}`;$('#case-external').href=`https://www.google.com/maps/d/viewer?mid=${id}`}
-$('#documented').onclick=()=>{if(stream)stopCamera();casesOpen=true;showTip(null);$('#scene').classList.add('cases-open');$('#cases-view').hidden=false;for(const id of ['national','states']){$('#'+id).classList.remove('active');$('#'+id).setAttribute('aria-pressed','false')}$('#documented').classList.add('active');$('#documented').setAttribute('aria-pressed','true');if(!$('#case-frame').getAttribute('src'))loadCaseMap()};
-$('#case-map').onchange=loadCaseMap;
+function setMode(m){mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
 $('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;resetView();setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;resetView();rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;resetView();rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
 function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;woven.width=canvas.width;woven.height=canvas.height;display.setTransform(dpr,0,0,dpr,0,0);boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
@@ -120,7 +117,7 @@ function drawStain(){
  }
  stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
 }
-function draw(t){if(casesOpen){lastFrameTime=t;requestAnimationFrame(draw);return}frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
+function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed;
  if(settling&&!paused){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
  const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
@@ -136,6 +133,7 @@ function draw(t){if(casesOpen){lastFrameTime=t;requestAnimationFrame(draw);retur
  }
  if(settling){ctx.lineWidth=1.2;for(let y=2015;y<=year;y++){const g=grayForYear(y);ctx.strokeStyle=`rgba(${g},${g},${g},.24)`;ctx.beginPath();for(const p of points){if(!p.moving||p.delay>0||p.year!==y)continue;ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2.7,p.y-p.vy*2.7)}ctx.stroke()}}
  for(let y=2015;y<=year;y++){const g=grayForYear(y);for(const dim of [false,true]){ctx.fillStyle=dim?`rgb(${Math.round(g*.32+30)},${Math.round(g*.27+25)},${Math.round(g*.27+25)})`:`rgb(${g},${g},${g})`;ctx.beginPath();for(const p of points){if(p.year!==y||p.delay>0||dimmed.has(p.id)!==dim)continue;ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,Math.PI*2)}ctx.fill()}}
+ ctx.strokeStyle='#e5e5e5';ctx.lineWidth=1;ctx.beginPath();for(const p of points)if(p.record&&p.delay<=0){ctx.moveTo(p.x+p.r+3,p.y);ctx.arc(p.x,p.y,p.r+3,0,Math.PI*2)}ctx.stroke();
  if(mode==='states'&&selected==='all'){ctx.font='9px "mozaic-geo-variable", sans-serif';ctx.textAlign='center';ctx.fillStyle='#aaa';for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8;const name=data.states[i].name;const x=W*.29+(col+.5)*W*.085,y=H*.14+(row+.5)*H*.16+H*.08;ctx.fillText(name.length>15?name.slice(0,13)+'…':name,x,y,W*.08)}}
  if(hover){ctx.strokeStyle='#d73630';ctx.lineWidth=1.2;ctx.beginPath();for(const e of edges)if(e.a===hover||e.b===hover)pathEdge(e);ctx.stroke();ctx.fillStyle='#d3322c';ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+4,0,Math.PI*2);ctx.stroke()}
  ctx.restore();
@@ -146,8 +144,13 @@ function draw(t){if(casesOpen){lastFrameTime=t;requestAnimationFrame(draw);retur
  else for(let y=0;y<H;y+=2){const h=Math.min(2,H-y),dx=fiberWave(y+h/2,pulseClock,H);display.drawImage(woven,0,y*dpr,woven.width,h*dpr,dx,y,W,h)}
  if(hover)positionTip(hover);
  requestAnimationFrame(draw)}
-function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;$('#tooltip').innerHTML=`<div class="tip-title">UNA VIDA EN EL REGISTRO</div>${mode==='states'?`<div class="demo-person"><strong>${demoName(p.id)}</strong><span>Nombre ficticio · demostración</span></div>`:''}<b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Unidad de un conteo agregado.<br>${mode==='states'?'El nombre no identifica a una víctima real.':'Sin identificación individual disponible.'}</small>`;positionTip(p);$('#tooltip').hidden=false}
-function positionTip(p){const pt=screenPoint(p),tw=240,th=mode==='states'?225:150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
+function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;
+ if(p.record){$('#tooltip').innerHTML=`<div class="tip-title">CASO DOCUMENTADO · YO TE NOMBRO</div><div class="demo-person"><strong>${p.record.name}</strong><span>${p.record.source}</span></div><b>${name}</b><br>${p.record.municipality}<br>Año: <b>${p.year}</b><small>Registro de la fuente ciudadana.<br>No se suma al conteo del SESNSP.</small>`}
+ else{$('#tooltip').innerHTML=`<div class="tip-title">REGISTRO AGREGADO · SESNSP</div><b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Sin nombre individual disponible.<br>Unidad de un conteo agregado.</small>`}
+ positionTip(p);$('#tooltip').hidden=false}
+let documentedIndex=-1;
+$('#documented-names').onclick=()=>{const names=points.filter(p=>p.record);if(!names.length)return;documentedIndex=(documentedIndex+1)%names.length;const p=names[documentedIndex];zoomAt(view,Math.max(1,1.5/view.scale),W*.6,H*.5,W,H);const q=screenPoint(p);panBy(view,W*.6-q.x,H*.48-q.y,W,H);showTip(p)};
+function positionTip(p){const pt=screenPoint(p),tw=240,th=p.record?235:150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;dragging={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};dragged=false;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{
  if(dragging){const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;if(Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>4)dragged=true;if(dragged&&view.scale>1){panBy(view,dx,dy,W,H);showTip(null)}dragging.x=e.clientX;dragging.y=e.clientY;canvas.style.cursor=view.scale>1?'grabbing':'default';return}

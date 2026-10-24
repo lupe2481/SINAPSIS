@@ -45,6 +45,7 @@ Al seleccionar una entidad, la cámara gráfica amplía 2,7 veces una región de
 ### Movimiento y percepción
 Atlas plano sin rotación ni perspectiva 3D. El pellizco y el desplazamiento del touchpad, o la rueda del mouse, controlan el zoom sobre el cursor. Al ampliar, arrastrar desplaza la red dentro de límites que evitan perderla fuera de pantalla. Las teclas +/− funcionan con la red enfocada; ↺ restablece la vista. Los pulsos y la animación de entrada se conservan. La mancha nace detrás del centro y atenúa los puntos sin ocultarlos.
 
-El tejido respira y se desplaza suavemente en 2D, sin perspectiva ni rotación. La pausa congela esta animación; movimiento reducido la desactiva. En las fichas estatales se muestran nombres ficticios estables, rotulados como demostración y separados de la base factual y su descarga.
+El tejido respira y se desplaza suavemente en 2D, sin perspectiva ni rotación. La pausa congela esta animación; movimiento reducido la desactiva. Los nombres reales incorporados se documentan en la sección Nombres dentro del atlas.
 
-La vista Casos documentados integra los dos mapas originales enlazados por Yo te nombro, con atribución y enlaces directos. Sus fichas se consultan en el mapa incrustado, sin copiar ni mezclar sus casos con los conteos oficiales. Requiere conexión a Google My Maps. El atlas incorpora ondas planas continuas sobre el tejido completo, incluidas las líneas de fondo, con fichas alineadas al desplazamiento.
+### Nombres dentro del atlas
+Se retiraron la tercera pestaña y los mapas incrustados. Cinco casos de 2016 fueron verificados manualmente en las fichas públicas de Yo te nombro y se muestran como puntos con contorno en el tejido existente. `dist/documented.js` conserva nombre, entidad, municipio, año y referencia. No son unidades identificadas del SESNSP ni se suman a los contadores. Se retiraron los nombres ficticios. La descarga KML pública devolvió HTTP 403; no se importó la base completa.
