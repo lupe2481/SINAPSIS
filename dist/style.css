@@ -15,3 +15,5 @@ nav button{font-family:Allteco,Arial,sans-serif;font-size:13px;letter-spacing:.1
 @media(max-width:700px){.fear-reading{left:70px;right:auto;bottom:160px}.has-fear .state-panel{bottom:113px}.motion-hint{bottom:116px;left:70px;right:auto;font-size:6px}}
 @media(max-height:650px) and (min-width:701px){.fear-reading{bottom:116px}.fear-reading strong{font-size:43px;line-height:1.1}.fear-reading p{margin:5px 0}}
 .fear-reading strong{line-height:1.1}.fear-reading p{margin:8px 0}
+
+.demo-person{margin:8px 0 11px;padding-bottom:8px;border-bottom:1px solid #d2cfca}.demo-person strong{display:block;font-size:16px}.demo-person span{display:block;font-size:9px;color:#8c2623;margin-top:4px}

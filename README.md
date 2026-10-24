@@ -44,3 +44,5 @@ Al seleccionar una entidad, la cámara gráfica amplía 2,7 veces una región de
 
 ### Movimiento y percepción
 Atlas plano sin rotación ni perspectiva 3D. El pellizco y el desplazamiento del touchpad, o la rueda del mouse, controlan el zoom sobre el cursor. Al ampliar, arrastrar desplaza la red dentro de límites que evitan perderla fuera de pantalla. Las teclas +/− funcionan con la red enfocada; ↺ restablece la vista. Los pulsos y la animación de entrada se conservan. La mancha nace detrás del centro y atenúa los puntos sin ocultarlos.
+
+El tejido respira y se desplaza suavemente en 2D, sin perspectiva ni rotación. La pausa congela esta animación; movimiento reducido la desactiva. En las fichas estatales se muestran nombres ficticios estables, rotulados como demostración y separados de la base factual y su descarga.
