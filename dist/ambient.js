@@ -9,3 +9,9 @@ const first=['Elena','Lucía','Mariana','Valeria','Camila','Renata','Andrea','Da
 const last=['Ríos','Vega','Luna','Soto','Montes','Robles','Campos','Fuentes','Molina','Sierra','León','Solís','Cruz','Paz','Vargas','Navarro','Flores','Reyes','Castro','Romero','Medina','Torres','Salas','Mora','Aguilar','Cortés','Ramos','Delgado','Pineda','Lara','Ortega','Cano'];
 // Pure presentation fixtures: never added to the factual dataset or export.
 export function demoName(id){return `${first[id%first.length]} ${last[Math.floor(id/first.length)%last.length]} ${last[(Math.floor(id/(first.length*last.length))+id*7+9)%last.length]}`}
+// Traveling planar waves bend the baseline branches as well as their nodes.
+export function fiberWave(y,time,height,reduced=false){
+ if(reduced)return 0;
+ const t=time*.001;
+ return 11*Math.sin(y/height*8-t*1.35)+5*Math.sin(y/height*15+t*.85);
+}

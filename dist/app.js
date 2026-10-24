@@ -1,4 +1,4 @@
-import {breathing, ambientPoint, demoName} from './ambient.js';
+import {breathing, ambientPoint, demoName, fiberWave} from './ambient.js';
 import {project, zoomAt, panBy, boundView, clamp, stainScore} from './view.js';
 import {grayForYear, enterParticles, stepParticles} from './motion.js';
 const $=s=>document.querySelector(s), fmt=n=>n.toLocaleString('es-MX');
@@ -7,10 +7,10 @@ try{const response=await fetch('./data.json');if(!response.ok)throw Error();data
 const neuralImage=new Image();neuralImage.src='./assets/neuronal-reference.svg';await neuralImage.decode();
 const mask=document.createElement('canvas');mask.width=1800;mask.height=1275;const maskCtx=mask.getContext('2d',{willReadFrequently:true});maskCtx.drawImage(neuralImage,0,0,mask.width,mask.height);const pixels=maskCtx.getImageData(0,0,mask.width,mask.height).data;const fibers=[],fiberGroups=Array.from({length:32},()=>[]);
 for(let y=2;y<mask.height-2;y+=3)for(let x=2;x<mask.width-2;x+=3){if(pixels[(y*mask.width+x)*4+3]>100){const pt={x:x/mask.width,y:y/mask.height};fibers.push(pt);const col=Math.min(7,Math.floor(x/mask.width*8)),row=Math.min(3,Math.floor(y/mask.height*4));fiberGroups[row*8+col].push(pt)}}
-const canvas=$('#network'),ctx=canvas.getContext('2d',{alpha:false});
+const canvas=$('#network'),display=canvas.getContext('2d',{alpha:false}),woven=document.createElement('canvas'),ctx=woven.getContext('2d',{alpha:false});
 const view={x:0,y:0,scale:1};let dragging=null,dragged=false;
 let ambient={a:1,d:1,x:0,y:0};
-const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);return project(q.x,q.y,W,H,view)};
+const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);const screen=project(q.x,q.y,W,H,view);screen.x+=fiberWave(screen.y,pulseClock,H,reduced);return screen};
 function resetView(){Object.assign(view,{x:0,y:0,scale:1});canvas.style.cursor='default'}
 let year=2025,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,7 +92,7 @@ function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;cons
 function setMode(m){mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
 $('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;resetView();setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;resetView();rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;resetView();rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
-function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
+function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;woven.width=canvas.width;woven.height=canvas.height;display.setTransform(dpr,0,0,dpr,0,0);boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
 function pathEdge(e){const {a,b}=e;ctx.moveTo(a.x,a.y);const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;const amplitude=Math.min(4,len*.035);for(let j=1;j<=7;j++){const f=j/7,noise=Math.sin(j*2.8+a.jitter*30)*amplitude*Math.sin(f*Math.PI);ctx.lineTo(a.x+dx*f-dy/len*noise,a.y+dy*f+dx/len*noise)}if(len>32){const f=.43,x=a.x+dx*f,y=a.y+dy*f;ctx.moveTo(x,y);ctx.lineTo(x-dy*.12+dx*.07,y+dx*.12+dy*.07);ctx.lineTo(x-dy*.21+dx*.04,y+dx*.21+dy*.04)}}
 let fearCenter={x:0,y:0},fearSorted=[],fearThreshold=-1,dimmed=new Set();
 const fearScore=p=>stainScore(p.tx,p.ty,fearCenter.x,fearCenter.y,W,H);
@@ -133,7 +133,13 @@ function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime
  for(let y=2015;y<=year;y++){const g=grayForYear(y);for(const dim of [false,true]){ctx.fillStyle=dim?`rgb(${Math.round(g*.32+30)},${Math.round(g*.27+25)},${Math.round(g*.27+25)})`:`rgb(${g},${g},${g})`;ctx.beginPath();for(const p of points){if(p.year!==y||p.delay>0||dimmed.has(p.id)!==dim)continue;ctx.moveTo(p.x+p.r,p.y);ctx.arc(p.x,p.y,p.r,0,Math.PI*2)}ctx.fill()}}
  if(mode==='states'&&selected==='all'){ctx.font='9px "mozaic-geo-variable", sans-serif';ctx.textAlign='center';ctx.fillStyle='#aaa';for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8;const name=data.states[i].name;const x=W*.29+(col+.5)*W*.085,y=H*.14+(row+.5)*H*.16+H*.08;ctx.fillText(name.length>15?name.slice(0,13)+'…':name,x,y,W*.08)}}
  if(hover){ctx.strokeStyle='#d73630';ctx.lineWidth=1.2;ctx.beginPath();for(const e of edges)if(e.a===hover||e.b===hover)pathEdge(e);ctx.stroke();ctx.fillStyle='#d3322c';ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+1,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(hover.x,hover.y,hover.r+4,0,Math.PI*2);ctx.stroke()}
- ctx.restore();if(hover)positionTip(hover);
+ ctx.restore();
+ display.fillStyle='#050505';display.fillRect(0,0,W,H);
+ // Two-pixel bands follow the same continuous field as pointer hit targets.
+ // Distort the full tissue together so no point detaches from its branches.
+ if(reduced)display.drawImage(woven,0,0,W,H);
+ else for(let y=0;y<H;y+=2){const h=Math.min(2,H-y),dx=fiberWave(y+h/2,pulseClock,H);display.drawImage(woven,0,y*dpr,woven.width,h*dpr,dx,y,W,h)}
+ if(hover)positionTip(hover);
  requestAnimationFrame(draw)}
 function showTip(p){hover=p;if(!p){$('#tooltip').hidden=true;return}const name=data.states.find(s=>s.id===p.state).name;$('#tooltip').innerHTML=`<div class="tip-title">UNA VIDA EN EL REGISTRO</div>${mode==='states'?`<div class="demo-person"><strong>${demoName(p.id)}</strong><span>Nombre ficticio · demostración</span></div>`:''}<b>${name}</b><br>Año: <b>${p.year}</b>${p.year===2026?' · enero–septiembre':''}<small>Unidad de un conteo agregado.<br>${mode==='states'?'El nombre no identifica a una víctima real.':'Sin identificación individual disponible.'}</small>`;positionTip(p);$('#tooltip').hidden=false}
 function positionTip(p){const pt=screenPoint(p),tw=240,th=mode==='states'?225:150;$('#tooltip').style.left=`${Math.max(10,Math.min(W-tw-10,pt.x+17))}px`;$('#tooltip').style.top=`${Math.max(10,Math.min(H-th-58,pt.y-35))}px`}
