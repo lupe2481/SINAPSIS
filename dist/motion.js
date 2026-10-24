@@ -9,6 +9,7 @@ export function enterParticles(points, previousIds, { animate, preserve, width, 
       else { p.moving = false; p.vx = 0; p.vy = 0; p.delay = 0; }
       continue;
     }
+    p.entryPath = [];
     p.moving = animate;
     p.delay = animate ? (p.id * 17 % 34) : 0;
     if (!animate) { p.x = p.tx; p.y = p.ty; p.vx = 0; p.vy = 0; continue; }
@@ -19,6 +20,7 @@ export function enterParticles(points, previousIds, { animate, preserve, width, 
     const dx = p.tx - p.x, dy = p.ty - p.y, d = Math.hypot(dx, dy) || 1;
     p.vx = dx / d * (12 + p.jitter * 14);
     p.vy = dy / d * (12 + p.jitter * 14);
+    p.entryPath.push(p.x,p.y);
     moving++;
   }
   return moving;
@@ -72,4 +74,24 @@ export function stepParticles(points, remaining, dt = 1) {
     p.x += p.vx * dt; p.y += p.vy * dt;
   }
   return remaining > 38 ? collideParticles(points) : 0;
+}
+
+// Capture the actual entry (including collisions) for reverse playback.
+export function recordEntry(points){for(const p of points)if(p.moving){if(!p.entryPath)p.entryPath=[];p.entryPath.push(p.x,p.y)}}
+export function makeExit(p,width,height){
+ const a=((p.id*.61803398875)%1)*Math.PI*2,d=Math.hypot(width,height)*(.55+p.jitter*.25);
+ const path=p.entryPath?.length>=4?[...p.entryPath]:[width*.58+Math.cos(a)*d,height*.46+Math.sin(a)*d];
+ path.push(p.x,p.y);
+ return {...p,entryPath:undefined,path,age:0,duration:2600+(p.id*17%34)*10,opacity:1,moving:false,delay:0};
+}
+export function stepExit(p,elapsed){
+ p.age=Math.min(p.duration,p.age+elapsed);
+ const progress=p.age/p.duration,n=p.path.length/2;
+ // The same collision path, traversed backwards; ease through its quiet tail.
+ const cursor=(n-1)*(1-Math.pow(progress,.65)),i=Math.floor(cursor),j=Math.min(n-1,i+1),f=cursor-i;
+ p.vx=p.x;p.vy=p.y;
+ p.x=p.path[i*2]*(1-f)+p.path[j*2]*f;p.y=p.path[i*2+1]*(1-f)+p.path[j*2+1]*f;
+ p.vx=p.x-p.vx;p.vy=p.y-p.vy;
+ p.opacity=progress<.85?1:(1-progress)/.15;
+ return progress<1;
 }

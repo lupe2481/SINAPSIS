@@ -2,7 +2,7 @@ import {demoName,advanceMotionClock} from './demo-names.js';
 import {documentedCases} from './documented.js';
 import {breathing, ambientPoint, fiberWave} from './ambient.js';
 import {project, zoomAt, panBy, boundView, clamp, stainScore} from './view.js';
-import {grayForYear, enterParticles, stepParticles} from './motion.js';
+import {grayForYear, enterParticles, stepParticles, recordEntry, makeExit, stepExit} from './motion.js';
 const $=s=>document.querySelector(s), fmt=n=>n.toLocaleString('es-MX');
 let data;
 try{const response=await fetch('./data.json');if(!response.ok)throw Error();data=await response.json()}catch(e){$('#loading').textContent='No se pudieron cargar los datos. Recarga la página.';throw e}
@@ -60,6 +60,9 @@ function prepareFibers(retainThrough=2014){
  const old=activeFibers.getContext('2d'),fresh=newFibers.getContext('2d');old.clearRect(0,0,mask.width,mask.height);fresh.clearRect(0,0,mask.width,mask.height);
  for(let y=2015;y<=year;y++){if(selected!=='all'&&!data.years[y].states[Number(selected)])continue;(y<=retainThrough?old:fresh).drawImage(cohortLayers[y-2015],0,0)}
 }
+let outgoing=[],outgoingEdges=[];
+const departingFibers=document.createElement('canvas');departingFibers.width=mask.width;departingFibers.height=mask.height;
+function prepareDepartures(){const c=departingFibers.getContext('2d');c.clearRect(0,0,mask.width,mask.height);for(const y of new Set(outgoing.map(p=>p.year)))c.drawImage(cohortLayers[y-2015],0,0)}
 let pulseClock=0,motionClock=0,lastFrameTime=0;
 function drawFibers(t){
  const arrival=settling?Math.min(1,(180-settling)/85):1;
@@ -74,6 +77,7 @@ function drawFibers(t){
  }else pulse.clearRect(0,0,mask.width,mask.height);
  ctx.save();ctx.translate(W*.58,H*.46);ctx.scale(zoom,zoom);ctx.translate(-W*.58,-H*.46);
  const drawAt=(x,y,w,h)=>{
+  if(outgoing.length){ctx.globalAlpha=.7*Math.max(...outgoing.map(p=>Math.max(0,1-p.age/p.duration)));ctx.drawImage(departingFibers,x,y,w,h)}
   ctx.globalAlpha=.7;ctx.drawImage(activeFibers,x,y,w,h);ctx.globalAlpha=.7*arrival;ctx.drawImage(newFibers,x,y,w,h);
   if(!paused&&!reduced){ctx.globalAlpha=.8;ctx.shadowColor='#ffffff';ctx.shadowBlur=9;ctx.drawImage(pulseFibers,x,y,w,h);ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.drawImage(pulseFibers,x,y,w,h)}
  };
@@ -81,7 +85,17 @@ function drawFibers(t){
  ctx.restore();
 }
 
-function rebuild(animate=true,preserve=false,previousYear=2014){const previousIds=new Set(points.map(p=>p.id));points=all.filter(p=>p.year<=year&&(selected==='all'||p.state===Number(selected)));geometry();edges=[];const groups=new Map();for(const p of points){if(!groups.has(p.state))groups.set(p.state,[]);groups.get(p.state).push(p)}
+function rebuild(animate=true,preserve=false,previousYear=2014){const previousPoints=points,previousEdges=edges;const previousIds=new Set(points.map(p=>p.id));points=all.filter(p=>p.year<=year&&(selected==='all'||p.state===Number(selected)));geometry();
+ const activeIds=new Set(points.map(p=>p.id));
+ if(!preserve||paused||reduced){outgoing=[];outgoingEdges=[]}
+ else{
+  outgoing=outgoing.filter(p=>!activeIds.has(p.id));
+  const departing=new Map();for(const p of previousPoints)if(!activeIds.has(p.id)){const exit=makeExit(p,W,H);outgoing.push(exit);departing.set(p.id,exit)}
+  const visible=new Map([...points,...outgoing].map(p=>[p.id,p]));
+  outgoingEdges=outgoingEdges.filter(e=>visible.has(e.a.id)&&visible.has(e.b.id)&&(!activeIds.has(e.a.id)||!activeIds.has(e.b.id))).map(e=>({...e,a:visible.get(e.a.id),b:visible.get(e.b.id)}));
+  for(const e of previousEdges)if(departing.has(e.a.id)||departing.has(e.b.id))outgoingEdges.push({a:departing.get(e.a.id)||e.a,b:departing.get(e.b.id)||e.b,bend:e.bend});
+ }
+ prepareDepartures();edges=[];const groups=new Map();for(const p of points){if(!groups.has(p.state))groups.set(p.state,[]);groups.get(p.state).push(p)}
  for(const group of groups.values()){for(let i=1;i<group.length;i++){const p=group[i];let nearest=null,dist=Infinity; // local topology is deterministic and bounded
  for(let k=1;k<=Math.min(i,18);k++){const q=group[i-k],d=(p.tx-q.tx)**2+(p.ty-q.ty)**2;if(d<dist){dist=d;nearest=q}}
  if(nearest)edges.push({a:p,b:nearest,bend:(p.jitter-.5)*16});}}
@@ -119,12 +133,19 @@ function drawStain(){
  stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
 }
 function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed*.65;motionClock=advanceMotionClock(motionClock,elapsed,paused,!!hover);
- if(settling&&!paused&&!hover){const dt=elapsed/16.67;stepParticles(points,settling,dt);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
+ if(settling&&!paused&&!hover){const dt=elapsed/16.67;stepParticles(points,settling,dt);recordEntry(points);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
+ if(outgoing.length&&!paused&&!hover){outgoing=outgoing.filter(p=>stepExit(p,elapsed));const ids=new Set(outgoing.map(p=>p.id));outgoingEdges=outgoingEdges.filter(e=>ids.has(e.a.id)||ids.has(e.b.id))}
  const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
  ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.scale,view.scale);ambient=breathing(motionClock,W,H,reduced);ctx.transform(ambient.a,0,0,ambient.d,ambient.x,ambient.y);
  drawStain();
  drawFibers(t);
+ // Removed cohorts leave through their recorded entry paths in reverse.
+ ctx.save();
+ const outgoingById=new Map(outgoing.map(p=>[p.id,p]));
+ for(const e of outgoingEdges){const removed=outgoingById.get(e.a.id)||outgoingById.get(e.b.id);if(!removed||Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)>180)continue;const g=grayForYear(removed.year);ctx.globalAlpha=.4*(1-removed.age/removed.duration);ctx.strokeStyle=`rgb(${g},${g},${g})`;ctx.lineWidth=.65;ctx.beginPath();pathEdge(e);ctx.stroke()}
+ for(const p of outgoing){const g=grayForYear(p.year);ctx.globalAlpha=p.opacity;ctx.fillStyle=`rgb(${g},${g},${g})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=p.opacity*.24;ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2.7,p.y-p.vy*2.7);ctx.stroke()}
+ ctx.restore();
  // Fine branching fibers; year cohorts retain distinct gray values.
  for(let y=2015;y<=year;y++){const gray=grayForYear(y);ctx.strokeStyle=`rgb(${gray} ${gray} ${gray} / .40)`;ctx.lineWidth=mode==='states'&&selected!=='all'?.85:.55;ctx.beginPath();for(const e of edges)if(e.a.year===y&&Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)<180)pathEdge(e);ctx.stroke()}
 
