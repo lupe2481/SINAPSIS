@@ -17,6 +17,7 @@ const view={x:0,y:0,scale:1};let dragging=null,dragged=false;
 let ambient={a:1,d:1,x:0,y:0};
 const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);const screen=project(q.x,q.y,W,H,view);screen.x+=fiberWave(screen.y,motionClock,H,reduced);return screen};
 function resetView(){Object.assign(view,{x:0,y:0,scale:1});canvas.style.cursor='default'}
+let onlyYear=false;
 let year=2026,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed=381;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
@@ -31,8 +32,8 @@ for(const p of all){const pool=fiberGroups[p.state-1].length?fiberGroups[p.state
 for(const s of data.states){const o=document.createElement('option');o.value=s.id;o.textContent=s.name;$('#state-select').append(o)}
 function currentState(){return data.states.find(s=>s.id===Number(selected))}
 function accumulated(state){let n=0;for(let y=2015;y<=year;y++)n+=state?data.years[y].states[state]:data.years[y].total;return n}
-function updateCohortLegend(){const key=$('#cohort-key');if(!key)return;key.innerHTML='';for(let y=2015;y<=year;y++){const item=document.createElement('span'),g=grayForYear(y);item.innerHTML=`<i style="background:rgb(${g},${g},${g})"></i>${y}`;key.append(item)}}
-function updateUI(){const state=currentState();$('#year').textContent=year;$('#annual').textContent=fmt(state?data.years[year].states[state.id]:data.years[year].total);$('#annual-label').textContent=year===2026?'víctimas · enero a septiembre':'víctimas registradas en el año';$('#scope').textContent=state?'VISTA ESTATAL':'REPÚBLICA MEXICANA';$('#total').textContent=fmt(accumulated(state?.id));$('#total-label').textContent='Acumulado desde 2015';$('#partial').hidden=year!==2026||mode==='states';$('#state-panel').hidden=mode!=='states';$('#state-name').replaceChildren(...(state?.name||'32 entidades').split(' ').flatMap((word,i)=>{const span=document.createElement('span');span.textContent=word;return i?[document.createTextNode(' '),span]:[span]}));$('#all-states').hidden=selected==='all';$('#state-select').value=selected;$('#view-title').textContent=state?`TOTAL NACIONAL ${year} / ${fmt(data.years[year].total)}`:'ATLAS NEURONAL / MÉXICO';$('#legend-years').textContent=`2015 — ${year}`;updateCohortLegend();for(const b of $('#years').children){const active=Number(b.dataset.year)===year;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',active)}for(const m of ['national','states']){$('#'+m).classList.toggle('active',mode===m);$('#'+m).setAttribute('aria-pressed',mode===m)}$('#fear-value').innerHTML=`${data.years[year].perception.toFixed(1)}<span>%</span>`;$('#fear-period').textContent=`INEGI · ENVIPE ${year} · dato nacional`;const names=points.filter(p=>p.record);$('#documented-names').hidden=!names.length;$('#documented-names').textContent=`○ ${names.length} nombres documentados`;$('#pause').setAttribute('aria-pressed',paused);$('#pause').textContent=paused?'▷':'Ⅱ';fitStateText()}
+function updateCohortLegend(){const key=$('#cohort-key');if(!key)return;key.innerHTML='';for(let y=onlyYear?year:2015;y<=year;y++){const item=document.createElement('span'),g=grayForYear(y);item.innerHTML=`<i style="background:rgb(${g},${g},${g})"></i>${y}`;key.append(item)}}
+function updateUI(){const state=currentState();$('#year').textContent=year;$('#annual').textContent=fmt(state?data.years[year].states[state.id]:data.years[year].total);$('#annual-label').textContent=year===2026?'víctimas · enero a septiembre':'víctimas registradas en el año';$('#scope').textContent=state?'VISTA ESTATAL':'REPÚBLICA MEXICANA';$('#total').textContent=fmt(accumulated(state?.id));$('#total-label').textContent='Acumulado desde 2015';$('#partial').hidden=year!==2026||mode==='states';$('#state-panel').hidden=mode!=='states';$('#state-name').replaceChildren(...(state?.name||'32 entidades').split(' ').flatMap((word,i)=>{const span=document.createElement('span');span.textContent=word;return i?[document.createTextNode(' '),span]:[span]}));$('#all-states').hidden=selected==='all';$('#state-select').value=selected;$('#view-title').textContent=state?`TOTAL NACIONAL ${year} / ${fmt(data.years[year].total)}`:'ATLAS NEURONAL / MÉXICO';$('#legend-years').textContent=onlyYear?`Solo ${year}`:`2015 — ${year}`;$('#year-filter').textContent=onlyYear?'VER ACUMULADO':`SOLO EL AÑO ${year}`;$('#year-filter').setAttribute('aria-pressed',onlyYear);updateCohortLegend();for(const b of $('#years').children){const active=Number(b.dataset.year)===year;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',active)}for(const m of ['national','states']){$('#'+m).classList.toggle('active',mode===m);$('#'+m).setAttribute('aria-pressed',mode===m)}$('#fear-value').innerHTML=`${data.years[year].perception.toFixed(1)}<span>%</span>`;$('#fear-period').textContent=`INEGI · ENVIPE ${year} · dato nacional`;const names=points.filter(p=>p.record);$('#documented-names').hidden=!names.length;$('#documented-names').textContent=`○ ${names.length} nombres documentados`;$('#pause').setAttribute('aria-pressed',paused);$('#pause').textContent=paused?'▷':'Ⅱ';fitStateText()}
 function fitStateText(){
  const panel=$('#state-panel'),title=$('#state-name');if(panel.hidden)return;
  title.style.fontSize='';panel.style.top='';
@@ -73,7 +74,7 @@ const activeFibers=document.createElement('canvas'),newFibers=document.createEle
 for(const layer of [activeFibers,newFibers,pulseFibers]){layer.width=mask.width;layer.height=mask.height}
 function prepareFibers(retainThrough=2014){
  const old=activeFibers.getContext('2d'),fresh=newFibers.getContext('2d');old.clearRect(0,0,mask.width,mask.height);fresh.clearRect(0,0,mask.width,mask.height);
- for(let y=2015;y<=year;y++){if(selected!=='all'&&!data.years[y].states[Number(selected)])continue;(y<=retainThrough?old:fresh).drawImage(cohortLayers[y-2015],0,0)}
+ for(let y=onlyYear?year:2015;y<=year;y++){if(selected!=='all'&&!data.years[y].states[Number(selected)])continue;(y<=retainThrough?old:fresh).drawImage(cohortLayers[y-2015],0,0)}
 }
 let outgoing=[],outgoingEdges=[];
 const departingFibers=document.createElement('canvas');departingFibers.width=mask.width;departingFibers.height=mask.height;
@@ -100,7 +101,7 @@ function drawFibers(t){
  ctx.restore();
 }
 
-function rebuild(animate=true,preserve=false,previousYear=2014){const previousPoints=points,previousEdges=edges;const previousIds=new Set(points.map(p=>p.id));points=all.filter(p=>p.year<=year&&(selected==='all'||p.state===Number(selected)));geometry();
+function rebuild(animate=true,preserve=false,previousYear=2014){const previousPoints=points,previousEdges=edges;const previousIds=new Set(points.map(p=>p.id));points=all.filter(p=>(onlyYear?p.year===year:p.year<=year)&&(selected==='all'||p.state===Number(selected)));geometry();
  const activeIds=new Set(points.map(p=>p.id));
  if(!preserve||paused||reduced){outgoing=[];outgoingEdges=[]}
  else{
@@ -120,8 +121,9 @@ function rebuild(animate=true,preserve=false,previousYear=2014){const previousPo
  settling=newCount?180:0;prepareFibers(preserve?previousYear:2014);
  prepareStain();fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
 
-function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);fearProgress=0;resetHandYear(handState);if(stream)$('#camera-status').textContent=handState.waiting?'Nuevo año: cierra el puño o retira la mano y vuelve a mostrar la palma.':'Nuevo año: muestra la palma para ver la percepción.';rebuild(y>previousYear,true,previousYear)}
+function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);fearProgress=0;resetHandYear(handState);if(stream)$('#camera-status').textContent=handState.waiting?'Nuevo año: cierra el puño o retira la mano y vuelve a mostrar la palma.':'Nuevo año: muestra la palma para ver la percepción.';rebuild(onlyYear||y>previousYear,!onlyYear,previousYear)}
 function setMode(m){mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
+$('#year-filter').onclick=()=>{onlyYear=!onlyYear;showTip(null);rebuild(true,false)};
 $('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;resetView();setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;resetView();rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;resetView();rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
 function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;woven.width=canvas.width;woven.height=canvas.height;display.setTransform(dpr,0,0,dpr,0,0);boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
@@ -237,4 +239,4 @@ $('#camera').onclick=async()=>{if(stream){stopCamera();return}const button=$('#c
 window.addEventListener('pagehide',stopCamera);document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopCamera()});
 resize();rebuild();$('#loading').hidden=true;$('#enter-experience').disabled=false;$('#enter-experience').onclick=()=>{$('#welcome').hidden=true;$('body>header').inert=false;$('#scene').inert=false;resetView();rebuild();$('#network').focus({preventScroll:true})};requestAnimationFrame(draw);
 // Read-only diagnostics for data validation and browser QA.
-window.sinapsis={getState:()=>({year,mode,selected,points:points.length,annual:data.years[year].total,accumulated:accumulated(),fear,perception:data.years[year].perception}),data};
+window.sinapsis={getState:()=>({year,mode,selected,onlyYear,points:points.length,annual:data.years[year].total,accumulated:accumulated(),fear,perception:data.years[year].perception}),data};
