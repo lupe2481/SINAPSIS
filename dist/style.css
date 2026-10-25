@@ -35,3 +35,21 @@ main{height:calc(100dvh - 112px)}
 /* The project title uses the same letterforms and spacing as the masthead. */
 .logo,dialog h2{font-family:Allteco,Arial,sans-serif;font-weight:400;font-style:normal;font-variation-settings:normal;font-synthesis:none;font-kerning:normal;letter-spacing:-.055em}
 dialog h3{font-family:'mozaic-geo-variable',Arial,sans-serif;font-weight:700;font-variation-settings:'wght' 700}
+
+#welcome{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:#050505;overflow:auto}
+.welcome-masthead{background:#f6f5f1;color:#080808;display:flex;align-items:center;gap:32px;padding:64px 40px 48px;flex-shrink:0}
+.welcome-masthead h1{font:400 clamp(72px,12vw,190px)/1 Allteco,Arial,sans-serif;font-variation-settings:normal;font-synthesis:none;letter-spacing:-.055em;margin:0;text-box-trim:trim-both;text-box-edge:cap alphabetic}
+.welcome-masthead p{font-size:clamp(17px,2.6vw,38px);line-height:1.05;letter-spacing:-.025em;margin:0;text-box-trim:trim-both;text-box-edge:cap alphabetic}
+.welcome-body{position:relative;flex:1;isolation:isolate;padding:54px 7vw 62px;min-height:460px;display:flex;align-items:center}
+.welcome-tissue{position:absolute;inset:0;z-index:-2;background:url('./assets/neuronal-reference.svg') center 46%/cover no-repeat;opacity:.38;animation:welcome-breathe 18s ease-in-out infinite alternate}
+.welcome-body:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#050505f5 0%,#050505e8 32%,#05050590 65%,#05050530)}
+.welcome-copy{max-width:650px}.welcome-kicker{font-size:9px;letter-spacing:.2em;color:#aaa}
+.welcome-intro{font-size:clamp(18px,1.6vw,24px);line-height:1.5;margin:22px 0 20px;letter-spacing:-.025em}
+.welcome-method{font-size:13px;line-height:1.65;color:#b7b7b7;max-width:580px;margin:0 0 28px}
+#enter-experience{display:flex;gap:45px;align-items:center;background:#f6f5f1;color:#080808;border:1px solid #f6f5f1;padding:16px 22px;font:400 17px Allteco,Arial,sans-serif;font-variation-settings:normal;transition:background .2s,color .2s}
+#enter-experience:hover{background:#111;color:#fff}#enter-experience:disabled{opacity:.5;cursor:wait}#enter-experience span{font:24px Arial}
+.welcome-note{font-size:10px;line-height:1.5;color:#999;max-width:500px;margin:18px 0 0}.welcome-index{position:absolute;bottom:24px;right:40px;font-size:8px;letter-spacing:.17em;color:#888}
+@keyframes welcome-breathe{from{transform:scale(1) translateX(0)}to{transform:scale(1.035) translateX(-8px)}}
+@media(max-height:760px){.welcome-masthead{padding-block:38px}.welcome-body{padding-block:32px;min-height:440px}.welcome-intro{font-size:18px;margin-block:18px}.welcome-method{margin-bottom:20px}}
+@media(max-width:700px){.welcome-masthead{padding:36px 22px;gap:20px;flex-wrap:wrap}.welcome-masthead h1{font-size:clamp(64px,19vw,130px)}.welcome-masthead p{font-size:20px}.welcome-body{padding:34px 24px 64px}.welcome-body:after{background:#050505bb}.welcome-index{right:24px;font-size:7px}.welcome-intro{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.welcome-tissue{animation:none}}
