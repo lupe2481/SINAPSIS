@@ -53,3 +53,8 @@ dialog h3{font-family:'mozaic-geo-variable',Arial,sans-serif;font-weight:700;fon
 @media(max-height:760px){.welcome-masthead{padding-block:38px}.welcome-body{padding-block:32px;min-height:440px}.welcome-intro{font-size:18px;margin-block:18px}.welcome-method{margin-bottom:20px}}
 @media(max-width:700px){.welcome-masthead{padding:36px 22px;gap:20px;flex-wrap:wrap}.welcome-masthead h1{font-size:clamp(64px,19vw,130px)}.welcome-masthead p{font-size:20px}.welcome-body{padding:34px 24px 64px}.welcome-body:after{background:#050505bb}.welcome-index{right:24px;font-size:7px}.welcome-intro{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.welcome-tissue{animation:none}}
+
+/* Keep standard letterforms rather than decorative contextual ligatures. */
+.logo,.welcome-masthead h1,dialog h2,nav button,#enter-experience,.state-panel h1,.year,.annual,.total strong,.fear-reading strong{font-variant-ligatures:none;font-feature-settings:'liga' 0,'clig' 0,'dlig' 0,'calt' 0}
+.welcome-body{overflow:hidden;overflow:clip}
+.welcome-masthead{position:relative;z-index:1}
