@@ -78,8 +78,9 @@ footer{z-index:5;padding-right:270px}
 .has-fear .state-panel{bottom:65px!important}
 @media(max-width:700px){.has-fear .state-panel{bottom:113px!important}}
 
-.year-filter{position:absolute;top:61px;right:30px;z-index:3;background:#101010ed;color:#fff;border:1px solid #aaa;border-radius:3px;padding:10px 14px;min-width:205px;font:400 13px Allteco,Arial,sans-serif;font-variation-settings:normal;font-variant-ligatures:none;font-feature-settings:'liga' 0,'clig' 0,'dlig' 0,'calt' 0}
-.year-filter[aria-pressed="true"]{background:#f6f5f1;color:#111}.year-filter:hover{border-color:#fff}
-.perception{top:112px}
-@media(max-width:1000px){.year-filter{right:20px;min-width:175px}}
-@media(max-width:700px){.year-filter{right:12px;top:12px;min-width:143px;font-size:11px;padding:9px}.perception{top:58px}}
+/* Annual filter shares the quiet canvas toolbar. */
+.canvas-controls .year-filter{width:auto;min-width:118px;padding:0 12px;font:400 11px Allteco,Arial,sans-serif;font-variation-settings:normal;font-variant-ligatures:none;font-feature-settings:'liga' 0,'clig' 0,'dlig' 0,'calt' 0}
+.canvas-controls .year-filter[aria-pressed="true"]{background:#292929;color:#fff}
+.canvas-controls .year-filter:hover{background:#222;color:#fff}
+.motion-hint{right:250px}
+@media(max-width:700px){.canvas-controls .year-filter{min-width:108px;padding:0 8px;font-size:10px}.motion-hint{right:auto}}
