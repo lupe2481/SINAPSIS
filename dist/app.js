@@ -17,7 +17,7 @@ const view={x:0,y:0,scale:1};let dragging=null,dragged=false;
 let ambient={a:1,d:1,x:0,y:0};
 const screenPoint=p=>{const q=ambientPoint(p.x,p.y,ambient);const screen=project(q.x,q.y,W,H,view);screen.x+=fiberWave(screen.y,motionClock,H,reduced);return screen};
 function resetView(){Object.assign(view,{x:0,y:0,scale:1});canvas.style.cursor='default'}
-let year=2025,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
+let year=2026,mode='national',selected='all',W=0,H=0,dpr=1,zoom=1,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,hover=null,pointer=null,points=[],edges=[],clusters=[],frame=0,settling=0,fear=false,fearProgress=0,keyboardIndex=-1;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let seed=381;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 const all=[];let id=0;
