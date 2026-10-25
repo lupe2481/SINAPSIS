@@ -6,9 +6,15 @@ for(let year=2015;year<=2026;year++){
  gesture('Closed_Fist');resetHandYear(s);
  assert.equal(gesture('Open_Palm').visible,true,`Palm after fist in ${year}`);
  resetHandYear(s);assert.equal(gesture('Open_Palm').visible,false,'Held palm must not carry over');
- assert.equal(gesture('',false).visible,false);
+ assert.equal(gesture('',false),null,'Removing the hand must not change visibility');
  assert.equal(gesture('Open_Palm').visible,true,`Reintroduced hand in ${year}`);
  assert.equal(gesture('Closed_Fist').visible,false);
 }
 const fresh=createHandState();assert.equal(readHand(fresh,'Open_Palm'),null);assert.equal(readHand(fresh,'Open_Palm'),null);assert.equal(readHand(fresh,'Open_Palm').visible,true);
 console.log('PASS: 12 years, fist/palm, held-palm reset, hand removal recovery and debouncing.');
+
+let visible=false;
+for(const [name,hand] of [['Open_Palm',true],['',false],['',false],['Unknown',true]]){const action=gesture(name,hand);if(action)visible=action.visible;assert.equal(visible,true,'The layer stays latched until a fist');}
+const closed=gesture('Closed_Fist');visible=closed.visible;assert.equal(visible,false);
+assert.equal(gesture('',false),null);
+console.log('PASS: palm → absence/unknown holds visibility; fist hides it.');

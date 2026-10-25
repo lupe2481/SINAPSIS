@@ -5,9 +5,10 @@ export function readHand(state,name,hasHand=true){
  const gesture=hasHand?name:'Absent';
  state.frames=gesture===state.last?state.frames+1:1;state.last=gesture;
  if(state.frames<3)return null;
- if(gesture==='Closed_Fist'||gesture==='Absent'){
+ if(gesture==='Absent'){state.heldPalm=false;state.waiting=false;return null}
+ if(gesture==='Closed_Fist'){
   state.heldPalm=false;state.waiting=false;
-  return {visible:false,status:gesture==='Absent'?'Muestra la palma para activar este año.':'Puño cerrado · capa oculta'};
+  return {visible:false,status:'Puño cerrado · capa oculta'};
  }
  if(gesture==='Open_Palm'){
   state.heldPalm=true;

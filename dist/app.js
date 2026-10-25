@@ -1,5 +1,5 @@
 import {areaThreshold} from './stain-area.js';
-import {createHandState,resetHandYear,readHand} from './hand-state.js';
+import {createHandState,resetHandYear,readHand} from './hand-state.js?v=hold';
 import {stateAtPosition} from './state-hit.js';
 import {demoName,advanceMotionClock} from './demo-names.js';
 import {documentedCases} from './documented.js';
