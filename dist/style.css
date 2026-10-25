@@ -19,3 +19,15 @@ nav button{font-family:Allteco,Arial,sans-serif;font-size:13px;letter-spacing:.1
 .demo-person{margin:8px 0 11px;padding-bottom:8px;border-bottom:1px solid #d2cfca}.demo-person strong{display:block;font-size:16px}.demo-person span{display:block;font-size:9px;color:#8c2623;margin-top:4px}
 
 .demo-person .fiction-note{font-size:8px;color:#6d625d;letter-spacing:0;line-height:1.35}.tip-hint{display:block;font-size:8px;color:#777;margin-top:9px}
+
+/* Project name and three-line descriptor share their visible top/bottom edges. */
+header{--masthead-height:112px;--brand-size:80px;--descriptor-size:20px;height:var(--masthead-height);gap:28px}
+.logo{font-size:var(--brand-size);letter-spacing:-.055em;flex-shrink:0;line-height:1;text-box-trim:trim-both;text-box-edge:cap alphabetic}
+.description{font-size:var(--descriptor-size);line-height:1.05;letter-spacing:-.025em;flex-shrink:0;text-box-trim:trim-both;text-box-edge:cap alphabetic}
+main{height:calc(100dvh - 112px)}
+@media(min-width:1500px){header{--masthead-height:130px;--brand-size:96px;--descriptor-size:24px}main{height:calc(100dvh - 130px)}}
+@media(max-width:1100px){header{--masthead-height:98px;--brand-size:64px;--descriptor-size:16px;gap:18px;padding-inline:20px}nav{gap:10px}nav button{padding:10px 12px;font-size:10px}main{height:calc(100dvh - 98px)}}
+@media(max-width:800px){header{--brand-size:52px;--descriptor-size:13px;gap:14px}nav button{padding:9px 8px;font-size:9px}}
+@media(max-width:700px){header{--masthead-height:116px;--brand-size:48px;--descriptor-size:12px;align-items:center;padding:0 14px 42px;gap:14px}main{height:calc(100dvh - 116px)}}
+
+@media(max-width:400px){header{--brand-size:40px;--descriptor-size:10px;gap:10px}}
