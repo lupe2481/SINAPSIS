@@ -1,3 +1,4 @@
+import {areaThreshold} from './stain-area.js';
 import {createHandState,resetHandYear,readHand} from './hand-state.js';
 import {stateAtPosition} from './state-hit.js';
 import {demoName,advanceMotionClock} from './demo-names.js';
@@ -117,23 +118,35 @@ let fearCenter={x:0,y:0},fearSorted=[],fearThreshold=-1,dimmed=new Set();
 const fearScore=p=>stainScore(p.tx,p.ty,fearCenter.x,fearCenter.y,W,H);
 const stain=document.createElement('canvas');stain.width=280;stain.height=180;
 const stainCtx=stain.getContext('2d'),stainImage=stainCtx.createImageData(280,180),stainField=new Float32Array(280*180);
+const tissueShape=document.createElement('canvas');tissueShape.width=280;tissueShape.height=180;
+const shapeCtx=tissueShape.getContext('2d',{willReadFrequently:true});shapeCtx.drawImage(mask,0,0,280,180);
+const shapePixels=shapeCtx.getImageData(0,0,280,180);shapeCtx.clearRect(0,0,280,180);shapeCtx.fillStyle='#fff';
+for(let y=0;y<180;y++){let left=280,right=-1;for(let x=0;x<280;x++)if([-2,-1,0,1,2].some(dy=>y+dy>=0&&y+dy<180&&shapePixels.data[((y+dy)*280+x)*4+3]>20)){left=Math.min(left,x);right=x}if(right>=left)shapeCtx.fillRect(left,y,right-left+1,1)}
+const tissueCanvas=document.createElement('canvas');tissueCanvas.width=280;tissueCanvas.height=180;
+const tissueCtx=tissueCanvas.getContext('2d',{willReadFrequently:true});let tissuePixels=null,areaScores=[];
 function prepareStain(){
- const visible=points.filter(p=>p.tx>0&&p.tx<W&&p.ty>0&&p.ty<H);
- fearCenter=visible.length?{x:visible.reduce((n,p)=>n+p.tx,0)/visible.length,y:visible.reduce((n,p)=>n+p.ty,0)/visible.length}:{x:W*.6,y:H*.5};
- for(let y=0;y<180;y++)for(let x=0;x<280;x++)stainField[y*280+x]=stainScore(x/280*W,y/180*H,fearCenter.x,fearCenter.y,W,H);
+ tissueCtx.clearRect(0,0,280,180);
+ const place=(x,y,w,h)=>tissueCtx.drawImage(tissueShape,x/W*280,y/H*180,w/W*280,h/H*180);
+ if(mode==='states'&&selected==='all'){for(let i=0;i<32;i++){const row=Math.floor(i/8),col=i%8,cw=W*.083,ch=H*.155;place(W*.29+col*cw+cw*.05,H*.15+row*ch+ch*.075,cw*.9,ch*.85)}}else place(imageRect.x,imageRect.y,imageRect.w,imageRect.h);
+ tissuePixels=tissueCtx.getImageData(0,0,280,180).data;
+ let count=0,cx=0,cy=0;for(let y=0;y<180;y++)for(let x=0;x<280;x++)if(tissuePixels[(y*280+x)*4+3]>127){cx+=x+.5;cy+=y+.5;count++}
+ fearCenter=count?{x:cx/count/280*W,y:cy/count/180*H}:{x:W*.6,y:H*.5};areaScores=[];
+ for(let y=0;y<180;y++)for(let x=0;x<280;x++){const k=y*280+x;stainField[k]=stainScore((x+.5)/280*W,(y+.5)/180*H,fearCenter.x,fearCenter.y,W,H);if(tissuePixels[k*4+3]>127)areaScores.push(stainField[k])}
+ areaScores.sort((a,b)=>a-b);
 }
 function drawStain(){
- const amount=Math.round(points.length*data.years[year].perception/100*fearProgress);
- dimmed=new Set(fearSorted.slice(0,amount).map(p=>p.id));
- fearThreshold=amount?fearScore(fearSorted[amount-1]):-1;
- if(!amount)return;
+ fearThreshold=areaThreshold(areaScores,data.years[year].perception,fearProgress);
+ dimmed=new Set(points.filter(p=>{const x=Math.floor(p.tx/W*280),y=Math.floor(p.ty/H*180);return x>=0&&x<280&&y>=0&&y<180&&tissuePixels[(y*280+x)*4+3]>127&&fearScore(p)<=fearThreshold}).map(p=>p.id));
+ if(fearThreshold<0)return;
  for(let y=0;y<180;y++)for(let x=0;x<280;x++){
-  const k=y*280+x,i=k*4,edge=clamp((fearThreshold-stainField[k])/.16+.25,0,1);
+  const k=y*280+x,i=k*4,edge=clamp((fearThreshold-stainField[k])/.055,0,1);
   const grain=.62+.15*Math.sin(x*.19+Math.sin(y*.12)*3)+.12*Math.cos(y*.27+x*.13)+.07*Math.sin(x*1.9+y*2.7);
-  stainImage.data[i]=112;stainImage.data[i+1]=12;stainImage.data[i+2]=17;stainImage.data[i+3]=255*edge*grain*.82*fearProgress;
+  stainImage.data[i]=112;stainImage.data[i+1]=12;stainImage.data[i+2]=17;
+  stainImage.data[i+3]=tissuePixels[i+3]>127?255*edge*grain*.82*fearProgress:0;
  }
- stainCtx.putImageData(stainImage,0,0);ctx.save();ctx.filter='blur(12px)';ctx.drawImage(stain,0,0,W,H);ctx.restore();
+ stainCtx.putImageData(stainImage,0,0);ctx.drawImage(stain,0,0,W,H);
 }
+
 function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime):16.67;lastFrameTime=t;if(!paused)pulseClock+=elapsed*.65;motionClock=advanceMotionClock(motionClock,elapsed,paused,!!hover);
  if(settling&&!paused&&!hover){const dt=elapsed/16.67;stepParticles(points,settling,dt);recordEntry(points);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
