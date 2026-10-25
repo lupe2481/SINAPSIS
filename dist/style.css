@@ -31,3 +31,7 @@ main{height:calc(100dvh - 112px)}
 @media(max-width:700px){header{--masthead-height:116px;--brand-size:48px;--descriptor-size:12px;align-items:center;padding:0 14px 42px;gap:14px}main{height:calc(100dvh - 116px)}}
 
 @media(max-width:400px){header{--brand-size:40px;--descriptor-size:10px;gap:10px}}
+
+/* The project title uses the same letterforms and spacing as the masthead. */
+.logo,dialog h2{font-family:Allteco,Arial,sans-serif;font-weight:400;font-style:normal;font-variation-settings:normal;font-synthesis:none;font-kerning:normal;letter-spacing:-.055em}
+dialog h3{font-family:'mozaic-geo-variable',Arial,sans-serif;font-weight:700;font-variation-settings:'wght' 700}
