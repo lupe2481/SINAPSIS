@@ -2,11 +2,17 @@
 
 Visualización interactiva de feminicidios registrados y percepción femenina de inseguridad en México, 2015–septiembre de 2026.
 
-## Vista local
+## Abrir la página
+
+**Versión pública:** [Abrir SINAPSIS](https://lupe2481.github.io/SINAPSIS/). No requiere descargar archivos ni iniciar un servidor.
+
+## Abrir desde tu computadora
 
 Abre `index.html` directamente con doble clic. La experiencia y la reflexión funcionan desde `file://` y desde GitHub Pages, incluyendo los audios. Conserva toda la carpeta al descargarla.
 
-Opcional: `python3 -m http.server 5173 --directory .` y abrir http://localhost:5173/index.html. La cámara necesita permisos y conexión para descargar su modelo; el control manual funciona sin cámara.
+Para descargarla desde GitHub: **Code → Download ZIP**, descomprime el archivo y abre `index.html` dentro de la carpeta extraída. Conserva la carpeta `recursos` junto a los archivos HTML; contiene imágenes, datos y audios.
+
+No abras una dirección `localhost` para este modo: abre el archivo `index.html`. La cámara necesita permisos y conexión para descargar su modelo; el control manual funciona sin cámara.
 
 Después de modificar `main.js`, sus módulos, `recursos/data.json` o la imagen neuronal, ejecuta `python3 recursos/herramientas/build_local.py` y guarda también `recursos/js/atlas.bundle.js`. El archivo generado incluye los datos y la imagen para evitar las restricciones de módulos, fetch y canvas al abrir archivos locales.
 
