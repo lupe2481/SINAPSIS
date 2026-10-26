@@ -14,7 +14,7 @@
   effect.preload = 'auto';
   effect.volume = 0.12;
   let lastEffect = -Infinity;
-  document.addEventListener('sinapsis:neuron-select', () => {
+  document.addEventListener('sinapsis:filter-change', () => {
     const now = performance.now();
     if (!enabled || document.hidden || now - lastEffect < 350) return;
     lastEffect = now;

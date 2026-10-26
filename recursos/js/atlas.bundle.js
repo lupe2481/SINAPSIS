@@ -314,10 +314,20 @@ function rebuild(animate=true,preserve=false,previousYear=2014){const previousPo
  settling=newCount?180:0;prepareFibers(preserve?previousYear:2014);
  prepareStain();fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));hover=null;$('#tooltip').hidden=true;updateUI();}
 
-function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;setFear(false);fearProgress=0;resetHandYear(handState);if(stream)$('#camera-status').textContent=handState.waiting?'Nuevo año: cierra el puño o retira la mano y vuelve a mostrar la palma.':'Nuevo año: muestra la palma para ver la percepción.';rebuild(onlyYear||y>previousYear,!onlyYear,previousYear)}
+function changeYear(y){y=Math.max(2015,Math.min(2026,y));if(y===year)return;const previousYear=year;year=y;document.dispatchEvent(new Event('sinapsis:filter-change'));setFear(false);fearProgress=0;resetHandYear(handState);if(stream)$('#camera-status').textContent=handState.waiting?'Nuevo año: cierra el puño o retira la mano y vuelve a mostrar la palma.':'Nuevo año: muestra la palma para ver la percepción.';rebuild(onlyYear||y>previousYear,!onlyYear,previousYear)}
 function setMode(m){mode=m;selected='all';zoom=1;resetView();setFear(false);rebuild()}
 $('#year-filter').onclick=()=>{onlyYear=!onlyYear;showTip(null);rebuild(true,false)};
-$('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');$('#state-select').onchange=e=>{selected=e.target.value;zoom=1;resetView();setFear(false);rebuild()};$('#all-states').onclick=()=>{selected='all';zoom=1;resetView();rebuild()};function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selected=String(data.states[index].id);zoom=1;resetView();rebuild()}$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
+function selectState(value){
+ if(value===selected)return;
+ selected=value;zoom=1;resetView();setFear(false);rebuild();
+ if(value!=='all')document.dispatchEvent(new Event('sinapsis:filter-change'));
+}
+$('#national').onclick=()=>setMode('national');$('#states').onclick=()=>setMode('states');
+$('#state-select').onchange=e=>selectState(e.target.value);
+$('#all-states').onclick=()=>selectState('all');
+function moveState(dir){let index=data.states.findIndex(s=>s.id===Number(selected));index=(index+dir+32)%32;selectState(String(data.states[index].id))}
+$('#previous-state').onclick=()=>moveState(-1);$('#next-state').onclick=()=>moveState(1);
+
 let wheelTime=0;$('.timeline').addEventListener('wheel',e=>{e.preventDefault();if(performance.now()-wheelTime>140){wheelTime=performance.now();changeYear(year+Math.sign(e.deltaY))}},{passive:false});
 function resize(){if(W===canvas.clientWidth&&H===canvas.clientHeight)return;W=canvas.clientWidth;H=canvas.clientHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;woven.width=canvas.width;woven.height=canvas.height;display.setTransform(dpr,0,0,dpr,0,0);boundView(view,W,H);ctx.setTransform(dpr,0,0,dpr,0,0);rebuild(false)}new ResizeObserver(resize).observe(canvas);
 function pathEdge(e){const {a,b}=e;ctx.moveTo(a.x,a.y);const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;const amplitude=Math.min(4,len*.035);for(let j=1;j<=7;j++){const f=j/7,noise=Math.sin(j*2.8+a.jitter*30)*amplitude*Math.sin(f*Math.PI);ctx.lineTo(a.x+dx*f-dy/len*noise,a.y+dy*f+dx/len*noise)}if(len>32){const f=.43,x=a.x+dx*f,y=a.y+dy*f;ctx.moveTo(x,y);ctx.lineTo(x-dy*.12+dx*.07,y+dx*.12+dy*.07);ctx.lineTo(x-dy*.21+dx*.04,y+dx*.21+dy*.04)}}
@@ -410,10 +420,11 @@ function stateAtPointer(e){
 }
 canvas.addEventListener('click',e=>{
  if(dragged)return;
+ if(mode==='states'&&selected==='all'){const state=stateAtPointer(e);if(state!==null){selectState(String(state));return}}
  const rect=canvas.getBoundingClientRect();let near=null,best=Infinity;
  for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),distance=Math.hypot(q.x-(e.clientX-rect.left),q.y-(e.clientY-rect.top));if(distance<Math.max(12,p.r*view.scale+5)&&distance<best){near=p;best=distance}}
- if(near){showTip(near);document.dispatchEvent(new Event('sinapsis:neuron-select'));return}
- if(mode!=='states'||selected!=='all')return;const state=stateAtPointer(e);if(state!==null){selected=String(state);zoom=1;resetView();rebuild()}});
+ if(near){showTip(near);return}
+});
 function gestureZoom(factor,clientX,clientY){const r=canvas.getBoundingClientRect();zoomAt(view,factor,clientX-r.left,clientY-r.top,W,H);showTip(null);canvas.style.cursor=view.scale>1?'grab':'default'}
 canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?H:1;gestureZoom(Math.exp(-e.deltaY*unit*(e.ctrlKey?.008:.002)),e.clientX,e.clientY)},{passive:false});
 // Safari exposes native trackpad pinch through gesture events.
@@ -422,7 +433,7 @@ canvas.addEventListener('gesturestart',e=>{e.preventDefault();lastGestureScale=1
 canvas.addEventListener('gesturechange',e=>{e.preventDefault();gestureZoom(e.scale/lastGestureScale,e.clientX,e.clientY);lastGestureScale=e.scale},{passive:false});
 canvas.addEventListener('gestureend',e=>{e.preventDefault();lastGestureScale=1},{passive:false});
 
-canvas.onkeydown=e=>{if(['+','=','-'].includes(e.key)){e.preventDefault();zoomAt(view,e.key==='-'?1/1.2:1.2,W/2,H/2,W,H);showTip(null);return}if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex]);if(points[keyboardIndex])document.dispatchEvent(new Event('sinapsis:neuron-select'))}};
+canvas.onkeydown=e=>{if(['+','=','-'].includes(e.key)){e.preventDefault();zoomAt(view,e.key==='-'?1/1.2:1.2,W/2,H/2,W,H);showTip(null);return}if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex])}};
 $('#reset').onclick=()=>{resetView();showTip(null)};
 $('#pause').onclick=()=>{paused=!paused;if(paused){settling=0;for(const p of points){p.x=p.tx;p.y=p.ty;p.moving=false;p.delay=0}}updateUI()};
 function setFear(value){if(fear===value)return;fear=value;$('#scene').classList.toggle('has-fear',value);fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));$('#fear-reading').hidden=!fear;$('#manual').textContent=fear?'Ocultar percepción':'Mostrar sin cámara';$('#manual').setAttribute('aria-pressed',fear)}
