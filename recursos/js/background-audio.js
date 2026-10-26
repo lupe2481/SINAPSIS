@@ -2,7 +2,7 @@
   const audio = document.createElement('audio');
   audio.src = 'recursos/audio/cinematic-ambient-drone.wav';
   audio.loop = true;
-  audio.preload = 'metadata';
+  audio.preload = 'auto';
   audio.volume = 0.22;
   document.body.append(audio);
   const button = document.querySelector('.ambient-audio-toggle');
@@ -54,9 +54,12 @@
   const start = event => {
     if (!event.target.closest('.ambient-audio-toggle') && enabled && audio.paused) void play();
   };
+  document.addEventListener('pointerdown', start);
+  document.addEventListener('pointerup', start);
+  document.addEventListener('touchend', start, { passive: true });
   document.addEventListener('click', start);
   document.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') start(event);
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) start(event);
   });
   const remember = () => save('sinapsis-audio-position', String(audio.currentTime));
   window.addEventListener('pagehide', () => { remember(); audio.pause(); effect.pause(); });
@@ -65,4 +68,6 @@
     if (document.hidden) { remember(); audio.pause(); effect.pause(); } else if (enabled) void play();
   });
   update();
+  // Try immediately; gesture listeners retry if autoplay is blocked.
+  if (enabled) void play();
 })();
