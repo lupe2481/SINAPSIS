@@ -5,7 +5,14 @@ Visualización interactiva de feminicidios registrados y percepción femenina de
 ## Vista local
 
 Desde esta carpeta: `python3 -m http.server 5173 --directory dist`.
-Abrir http://localhost:5173. No requiere compilación.
+Abrir http://localhost:5173/index.html. No requiere compilación.
+
+- `dist/index.html`: primera pantalla / bienvenida.
+- `dist/experiencia.html`: atlas interactivo, con `app.js` y sus módulos.
+- `dist/reflexion.html`: reflexión y cuatro etapas del proceso, con `reflexion.js`.
+- `dist/style.css`: estilos compartidos.
+
+Cada página funciona por URL directa. La navegación usa enlaces relativos. Al volver desde la reflexión, `experiencia.html?continuar=1` recupera año, entidad, filtro y pausa guardados en la sesión; entrar desde la bienvenida inicia el atlas en su estado predeterminado.
 
 ## Datos
 
@@ -52,3 +59,10 @@ Se retiraron la tercera pestaña y los mapas incrustados. Cinco casos de 2016 fu
 
 ### Prueba de nombres y lectura
 Los puntos agregados muestran alias ficticios estables en ambos modos, con nota discreta de 8 px. Los cinco nombres reales conservan su fuente. Los alias no se exportan como datos oficiales. La ondulación y respiración avanzan al 20% de su velocidad anterior; al consultar una ficha se congelan el tejido y la entrada de partículas, mientras la luz continúa. Una tolerancia de selección evita perder el punto por movimientos pequeños del cursor. Escape cierra la ficha.
+
+### Tercera pantalla: reflexión y proceso
+Desde «Reflexión», un botón negro con borde y texto rojos en la barra inferior del atlas, separado de «Fuentes» (borde blanco y fondo negro) se abre el cierre: reflexión completa, textura neuronal a baja opacidad y cuatro accesos circulares numerados con contorno blanco y halo rojo al interactuar. Cada círculo abre una ventana modal sobre la reflexión, que permanece visible detrás con desenfoque. Permite avanzar, retroceder y cerrar con ×, Escape o clic fuera; el foco vuelve al botón de origen. Los círculos retoman el lenguaje visual de los casos del atlas. Se mantienen Allteco y Mozaic Geo. En móvil, los círculos aparecen debajo de la lectura.
+
+Al navegar a la reflexión se abandona la página del atlas y se apaga la cámara. Volver al atlas conserva la selección; volver al inicio recupera la bienvenida. Verificación en Chrome: cuatro etapas, retorno a reflexión, Escape, conservación del año, retorno al inicio, ancho móvil de 390 px y ausencia de errores JavaScript. Capturas en `qa/closing-desktop.png`, `qa/process-desktop.png` y `qa/closing-mobile.png`.
+
+Verificación de páginas independientes: enlaces de ida y vuelta, acceso directo a los tres HTML, cuatro diálogos, Fuentes, restauración de año/entidad/filtro y ancho móvil sin desbordamiento. Ocho pruebas de lógica aprobadas.
