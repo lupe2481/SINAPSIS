@@ -8,9 +8,9 @@ Desde esta carpeta: `python3 -m http.server 5173 --directory dist`.
 Abrir http://localhost:5173/index.html. No requiere compilación.
 
 - `dist/index.html`: primera pantalla / bienvenida.
-- `dist/experiencia.html`: atlas interactivo, con `app.js` y sus módulos.
+- `dist/experiencia.html`: atlas interactivo, con `main.js` y sus módulos.
 - `dist/reflexion.html`: reflexión y cuatro etapas del proceso, con `reflexion.js`.
-- `dist/style.css`: estilos compartidos.
+- `dist/estilo.css`: estilos compartidos.
 
 Cada página funciona por URL directa. La navegación usa enlaces relativos. Al volver desde la reflexión, `experiencia.html?continuar=1` recupera año, entidad, filtro y pausa guardados en la sesión; entrar desde la bienvenida inicia el atlas en su estado predeterminado.
 
@@ -36,7 +36,7 @@ MediaPipe GestureRecognizer 0.10.21; carga bajo demanda de jsDelivr y modelo ofi
 
 ## Verificación
 
-`node --check dist/app.js`
+`node --check dist/main.js`
 `node scripts/validate.mjs`
 
 Revisión visual y funcional en el navegador: nacional, agrupaciones, Nuevo León, 2015/2025/2026, percepción manual, reinicio de la capa y metodología. Reconocimiento físico de gestos pendiente de prueba con cámara autorizada.
