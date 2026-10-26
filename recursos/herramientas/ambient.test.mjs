@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {breathing,ambientPoint,fiberWave} from '../dist/ambient.js';
+import {breathing,ambientPoint,fiberWave} from '../js/ambient.js';
 const a=breathing(0,1280,630),b=breathing(2500,1280,630);
 assert.notDeepEqual(ambientPoint(900,400,a),ambientPoint(900,400,b));
 assert.deepEqual(breathing(2500,1280,630,true),{a:1,d:1,x:0,y:0});

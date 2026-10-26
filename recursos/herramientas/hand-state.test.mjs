@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHandState,resetHandYear,readHand} from '../dist/hand-state.js';
+import {createHandState,resetHandYear,readHand} from '../js/hand-state.js';
 const s=createHandState();
 const gesture=(name,hand=true)=>{let action;for(let i=0;i<3;i++)action=readHand(s,name,hand);return action};
 for(let year=2015;year<=2026;year++){

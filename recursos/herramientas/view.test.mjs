@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {project,zoomAt,panBy,stainScore} from '../dist/view.js';
+import {project,zoomAt,panBy,stainScore} from '../js/view.js';
 const v={x:0,y:0,scale:1},w=1280,h=630;
 assert.deepEqual(project(900,300,w,h,v),{x:900,y:300});
 zoomAt(v,2,900,300,w,h);

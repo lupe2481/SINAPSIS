@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {enterParticles,stepParticles,recordEntry,makeExit,stepExit} from '../dist/motion.js';
+import {enterParticles,stepParticles,recordEntry,makeExit,stepExit} from '../js/motion.js';
 const p={id:12,year:2025,jitter:.4,x:200,y:200,tx:200,ty:200,r:4,vx:0,vy:0};
 enterParticles([p],new Set(),{animate:true,preserve:false,width:1280,height:720});
 const origin=[p.x,p.y];

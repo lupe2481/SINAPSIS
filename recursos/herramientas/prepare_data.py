@@ -1,6 +1,6 @@
 import openpyxl,json,collections,pathlib
-root=pathlib.Path(__file__).resolve().parents[1]
-w=openpyxl.load_workbook(root/'sources/historico.xlsx',read_only=True,data_only=True)
+root=pathlib.Path(__file__).resolve().parents[2]
+w=openpyxl.load_workbook(root/'recursos/sources/historico.xlsx',read_only=True,data_only=True)
 counts=collections.defaultdict(lambda:collections.Counter()); names={}
 for r in w.active.iter_rows(min_row=2,values_only=True):
  if r[4]=='Feminicidio' and r[7]=='Mujer':
@@ -15,5 +15,5 @@ print('Historical annual totals:',actual,'PDF:',expected)
 assert actual==expected,(actual,expected)
 fear=[76.2,75.3,76.9,82.1,82.0,81.7,78.8,79.4,78.6,77.3,79.4,77.4]
 data={'startYear':2015,'endYear':2026,'cutoff':'2026-09-30','states':[{'id':k,'name':names[k]} for k in sorted(names)],'years':{y:{'total':sum(counts[y].values()),'states':dict(counts[y]),'perception':fear[y-2015],'partial':y==2026} for y in range(2015,2027)}}
-(root/'dist/data.json').write_text(json.dumps(data,ensure_ascii=False,indent=2))
+(root/'recursos/data.json').write_text(json.dumps(data,ensure_ascii=False,indent=2))
 print('Cumulative',sum(sum(v.values()) for v in counts.values()))

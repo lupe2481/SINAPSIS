@@ -1,15 +1,15 @@
-import {areaThreshold} from './stain-area.js';
-import {createHandState,resetHandYear,readHand} from './hand-state.js?v=hold';
-import {stateAtPosition} from './state-hit.js';
-import {demoName,advanceMotionClock} from './demo-names.js';
-import {documentedCases} from './documented.js';
-import {breathing, ambientPoint, fiberWave} from './ambient.js';
-import {project, zoomAt, panBy, boundView, clamp, stainScore} from './view.js';
-import {grayForYear, enterParticles, stepParticles, recordEntry, makeExit, stepExit} from './motion.js';
+import {areaThreshold} from './recursos/js/stain-area.js';
+import {createHandState,resetHandYear,readHand} from './recursos/js/hand-state.js?v=hold';
+import {stateAtPosition} from './recursos/js/state-hit.js';
+import {demoName,advanceMotionClock} from './recursos/js/demo-names.js';
+import {documentedCases} from './recursos/js/documented.js';
+import {breathing, ambientPoint, fiberWave} from './recursos/js/ambient.js';
+import {project, zoomAt, panBy, boundView, clamp, stainScore} from './recursos/js/view.js';
+import {grayForYear, enterParticles, stepParticles, recordEntry, makeExit, stepExit} from './recursos/js/motion.js';
 const $=s=>document.querySelector(s), fmt=n=>n.toLocaleString('es-MX');
 let data;
-try{const response=await fetch('./data.json');if(!response.ok)throw Error();data=await response.json()}catch(e){$('#loading').textContent='No se pudieron cargar los datos. Recarga la página.';throw e}
-const neuralImage=new Image();neuralImage.src='./assets/neuronal-reference.svg';await neuralImage.decode();
+try{const response=await fetch('./recursos/data.json');if(!response.ok)throw Error();data=await response.json()}catch(e){$('#loading').textContent='No se pudieron cargar los datos. Recarga la página.';throw e}
+const neuralImage=new Image();neuralImage.src='./recursos/assets/neuronal-reference.svg';await neuralImage.decode();
 const mask=document.createElement('canvas');mask.width=1800;mask.height=1275;const maskCtx=mask.getContext('2d',{willReadFrequently:true});maskCtx.drawImage(neuralImage,0,0,mask.width,mask.height);const pixels=maskCtx.getImageData(0,0,mask.width,mask.height).data;const fibers=[],fiberGroups=Array.from({length:32},()=>[]);
 for(let y=2;y<mask.height-2;y+=3)for(let x=2;x<mask.width-2;x+=3){if(pixels[(y*mask.width+x)*4+3]>100){const pt={x:x/mask.width,y:y/mask.height};fibers.push(pt);const col=Math.min(7,Math.floor(x/mask.width*8)),row=Math.min(3,Math.floor(y/mask.height*4));fiberGroups[row*8+col].push(pt)}}
 const canvas=$('#network'),display=canvas.getContext('2d',{alpha:false}),woven=document.createElement('canvas'),ctx=woven.getContext('2d',{alpha:false});

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {stateAtPosition} from '../dist/state-hit.js';
+import {stateAtPosition} from '../js/state-hit.js';
 for(const [w,h] of [[1280,630],[1920,990],[834,450]]){
  for(let id=1;id<=32;id++){
   const col=(id-1)%8,row=Math.floor((id-1)/8),x=w*.29+(col+.5)*w*.083;

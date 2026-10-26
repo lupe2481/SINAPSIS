@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-const d=JSON.parse(fs.readFileSync(new URL('../dist/data.json',import.meta.url),'utf8'));
+const d=JSON.parse(fs.readFileSync(new URL('../data.json',import.meta.url),'utf8'));
 const totals=[428,648,769,925,972,975,1022,985,853,858,736,518];
 assert.equal(d.states.length,32);assert.equal(new Set(d.states.map(s=>s.id)).size,32);
 let sum=0;
