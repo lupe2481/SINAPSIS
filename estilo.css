@@ -218,3 +218,21 @@ footer{padding:0 30px;gap:24px}
 #enter-experience,#open-closing,.closing-navigation a{text-decoration:none;cursor:pointer}
 #enter-experience{width:fit-content}
 .closing-navigation a{display:inline-flex;align-items:center;justify-content:center}
+
+/* Background sound control, shared by all three pages. */
+.ambient-audio-toggle{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 12px;border:1px solid #666;background:#080808;color:#ddd;font:400 10px/1.2 Arial,sans-serif;letter-spacing:.06em;cursor:pointer}
+.ambient-audio-toggle:hover{background:#242424;color:#fff}
+.ambient-audio-toggle[aria-pressed="true"]{border-color:#b75a54;color:#fff}
+.welcome-copy .ambient-audio-toggle{margin-top:18px}
+.perception>.ambient-audio-toggle{width:100%;margin-bottom:8px}
+.closing-navigation{flex-wrap:wrap}
+.closing-navigation .ambient-audio-toggle{background:transparent;color:inherit;font-size:10px}
+@media(max-width:700px){.closing-navigation .ambient-audio-toggle{order:3;margin-left:auto}.perception>.ambient-audio-toggle{font-size:9px;min-height:36px;padding:8px}}
+
+/* Compact shared sound switch; beside pause in the atlas. */
+.ambient-audio-toggle{width:35px;height:30px;min-height:30px;padding:0;flex-shrink:0;letter-spacing:0}
+.ambient-audio-toggle svg{display:block;pointer-events:none}
+.canvas-controls .ambient-audio-toggle{width:35px;height:30px;min-height:30px;padding:0;border:0}
+.canvas-controls #pause{font-size:13px}
+.motion-hint{right:290px}
+@media(max-width:700px){.motion-hint{right:auto}.closing-navigation .ambient-audio-toggle{padding:0;min-height:30px}}

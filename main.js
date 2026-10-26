@@ -215,7 +215,12 @@ function stateAtPointer(e){
  const y=((sy-view.y)/view.scale-ambient.y)/ambient.d;
  return stateAtPosition(x,y,W,H);
 }
-canvas.addEventListener('click',e=>{if(dragged||mode!=='states'||selected!=='all')return;const state=stateAtPointer(e);if(state!==null){selected=String(state);zoom=1;resetView();rebuild()}});
+canvas.addEventListener('click',e=>{
+ if(dragged)return;
+ const rect=canvas.getBoundingClientRect();let near=null,best=Infinity;
+ for(const p of points){if(p.delay>0)continue;const q=screenPoint(p),distance=Math.hypot(q.x-(e.clientX-rect.left),q.y-(e.clientY-rect.top));if(distance<Math.max(12,p.r*view.scale+5)&&distance<best){near=p;best=distance}}
+ if(near){showTip(near);document.dispatchEvent(new Event('sinapsis:neuron-select'));return}
+ if(mode!=='states'||selected!=='all')return;const state=stateAtPointer(e);if(state!==null){selected=String(state);zoom=1;resetView();rebuild()}});
 function gestureZoom(factor,clientX,clientY){const r=canvas.getBoundingClientRect();zoomAt(view,factor,clientX-r.left,clientY-r.top,W,H);showTip(null);canvas.style.cursor=view.scale>1?'grab':'default'}
 canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?H:1;gestureZoom(Math.exp(-e.deltaY*unit*(e.ctrlKey?.008:.002)),e.clientX,e.clientY)},{passive:false});
 // Safari exposes native trackpad pinch through gesture events.
@@ -224,7 +229,7 @@ canvas.addEventListener('gesturestart',e=>{e.preventDefault();lastGestureScale=1
 canvas.addEventListener('gesturechange',e=>{e.preventDefault();gestureZoom(e.scale/lastGestureScale,e.clientX,e.clientY);lastGestureScale=e.scale},{passive:false});
 canvas.addEventListener('gestureend',e=>{e.preventDefault();lastGestureScale=1},{passive:false});
 
-canvas.onkeydown=e=>{if(['+','=','-'].includes(e.key)){e.preventDefault();zoomAt(view,e.key==='-'?1/1.2:1.2,W/2,H/2,W,H);showTip(null);return}if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex])}};
+canvas.onkeydown=e=>{if(['+','=','-'].includes(e.key)){e.preventDefault();zoomAt(view,e.key==='-'?1/1.2:1.2,W/2,H/2,W,H);showTip(null);return}if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex]);if(points[keyboardIndex])document.dispatchEvent(new Event('sinapsis:neuron-select'))}};
 $('#reset').onclick=()=>{resetView();showTip(null)};
 $('#pause').onclick=()=>{paused=!paused;if(paused){settling=0;for(const p of points){p.x=p.tx;p.y=p.ty;p.moving=false;p.delay=0}}updateUI()};
 function setFear(value){if(fear===value)return;fear=value;$('#scene').classList.toggle('has-fear',value);fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));$('#fear-reading').hidden=!fear;$('#manual').textContent=fear?'Ocultar percepción':'Mostrar sin cámara';$('#manual').setAttribute('aria-pressed',fear)}
