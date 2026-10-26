@@ -1,3 +1,4 @@
+import {distributeRecords,tissueRect} from './recursos/js/distribution.js';
 import {areaThreshold} from './recursos/js/stain-area.js';
 import {createHandState,resetHandYear,readHand} from './recursos/js/hand-state.js?v=hold';
 import {stateAtPosition} from './recursos/js/state-hit.js';
@@ -25,9 +26,7 @@ const all=[];let id=0;
 for(const state of data.states){seed=state.id*15731;for(let y=2015;y<=2026;y++){for(let i=0;i<data.years[y].states[state.id];i++){const a=rand()*Math.PI*2,r=Math.sqrt(rand());all.push({id:id++,state:state.id,year:y,u:Math.cos(a)*r,v:Math.sin(a)*r,jitter:rand(),x:0,y:0,vx:0,vy:0,tx:0,ty:0,r:1})}}}
 for(const [index,record] of documentedCases.entries()){const jitter=((index+1)*.61803398875)%1;all.push({id:100000+index,state:record.state,year:record.year,record,jitter,u:0,v:0,x:0,y:0,vx:0,vy:0,tx:0,ty:0,r:1})}
 for(let y=2015;y<=2026;y++){const b=document.createElement('button');b.textContent=y;b.dataset.year=y;b.setAttribute('aria-label',`Año ${y}${y===2026?', enero a septiembre':''}`);b.onclick=()=>changeYear(y);$('#years').append(b)}
-const stateCrops=data.states.map((state,i)=>({cx:Math.max(.24,Math.min(.78,(i%8+.5)/8)),cy:Math.max(.28,Math.min(.76,(Math.floor(i/8)+.5)/4))}));
-const stateFibers=stateCrops.map(c=>fibers.filter(p=>Math.abs(p.x-c.cx)<.14&&Math.abs(p.y-c.cy)<.15));
-for(const p of all){const pool=fiberGroups[p.state-1].length?fiberGroups[p.state-1]:fibers;const a=pool[Math.floor(p.jitter*pool.length)];const local=stateFibers[p.state-1].length?stateFibers[p.state-1]:fibers;const b=local[(p.id*7919)%local.length];p.nx=a.x+(p.jitter-.5)*.004;p.ny=a.y+Math.sin(p.id)*.002;p.sx=b.x+(p.jitter-.5)*.003;p.sy=b.y+Math.sin(p.id)*.002;const overview=fibers[(p.id*7919)%fibers.length];p.ox=overview.x;p.oy=overview.y}
+distributeRecords(all,fibers);
 
 for(const s of data.states){const o=document.createElement('option');o.value=s.id;o.textContent=s.name;$('#state-select').append(o)}
 function currentState(){return data.states.find(s=>s.id===Number(selected))}
@@ -47,7 +46,7 @@ function fitStateText(){
  panel.style.top=`${Math.max(minimumTop,H-panel.offsetHeight-110)}px`;panel.style.bottom='auto';
 }
 let imageRect={x:0,y:0,w:0,h:0};
-function geometry(){const single=mode==='states'&&selected!=='all';const nw=Math.max(W*.98,H*1.43);imageRect={x:W*.15,y:H*.025,w:nw,h:nw*1894.97/2675.91};if(single){const crop=stateCrops[Number(selected)-1];const width=nw*2.7,height=width*1894.97/2675.91;imageRect={x:W*.64-crop.cx*width,y:H*.47-crop.cy*height,w:width,h:height}}clusters=[];
+function geometry(){const single=mode==='states'&&selected!=='all';imageRect=tissueRect(W,H);clusters=[];
 for(const p of points){let tx,ty;if(single){tx=imageRect.x+p.sx*imageRect.w;ty=imageRect.y+p.sy*imageRect.h;p.r=5.6+p.jitter*.8}else if(mode==='states'){const row=Math.floor((p.state-1)/8),col=(p.state-1)%8;const cw=W*.083,ch=H*.155,cx=W*.29+(col+.5)*cw,cy=H*.15+(row+.5)*ch;tx=cx+(p.ox-.5)*cw*.9;ty=cy+(p.oy-.5)*ch*.85;p.r=1.7+p.jitter*.35}else{tx=imageRect.x+p.nx*imageRect.w;ty=imageRect.y+p.ny*imageRect.h;p.r=3.25+p.jitter*.7}p.tx=W*.58+(tx-W*.58)*zoom;p.ty=H*.46+(ty-H*.46)*zoom;p.r*=Math.sqrt(zoom)}
 }
 // The SVG is divided into persistent year cohorts. Each fiber pixel inherits
