@@ -368,7 +368,7 @@ function draw(t){frame++;const elapsed=lastFrameTime?Math.min(40,t-lastFrameTime
  if(settling&&!paused&&!hover){const dt=elapsed/16.67;stepParticles(points,settling,dt);recordEntry(points);settling=Math.max(0,settling-dt);if(!settling)for(const p of points)if(p.moving){p.x=p.tx;p.y=p.ty;p.vx=0;p.vy=0;p.moving=false}}
 
  if(outgoing.length&&!paused&&!hover){outgoing=outgoing.filter(p=>stepExit(p,elapsed));const ids=new Set(outgoing.map(p=>p.id));outgoingEdges=outgoingEdges.filter(e=>ids.has(e.a.id)||ids.has(e.b.id))}
- const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;
+ const target=fear?1:0;fearProgress+= (target-fearProgress)*.045;if(Math.abs(fearProgress-target)<.001)fearProgress=target;publishFearAudio();
  ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.scale,view.scale);ambient=breathing(motionClock,W,H,reduced);ctx.transform(ambient.a,0,0,ambient.d,ambient.x,ambient.y);
  drawStain();
  drawFibers(t);
@@ -436,7 +436,13 @@ canvas.addEventListener('gestureend',e=>{e.preventDefault();lastGestureScale=1},
 canvas.onkeydown=e=>{if(['+','=','-'].includes(e.key)){e.preventDefault();zoomAt(view,e.key==='-'?1/1.2:1.2,W/2,H/2,W,H);showTip(null);return}if(e.key==='Escape'){showTip(null);return}if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();keyboardIndex=(keyboardIndex+(e.key==='ArrowRight'?1:-1)+points.length)%points.length;showTip(points[keyboardIndex])}};
 $('#reset').onclick=()=>{resetView();showTip(null)};
 $('#pause').onclick=()=>{paused=!paused;if(paused){settling=0;for(const p of points){p.x=p.tx;p.y=p.ty;p.moving=false;p.delay=0}}updateUI()};
-function setFear(value){if(fear===value)return;fear=value;$('#scene').classList.toggle('has-fear',value);fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));$('#fear-reading').hidden=!fear;$('#manual').textContent=fear?'Ocultar percepción':'Mostrar sin cámara';$('#manual').setAttribute('aria-pressed',fear)}
+let lastFearAudio='';
+function publishFearAudio(){
+ const detail={visible:fear||fearProgress>0,appearing:fear&&fearProgress<1,progress:fearProgress};
+ const key=JSON.stringify(detail);if(key===lastFearAudio)return;lastFearAudio=key;
+ document.dispatchEvent(new CustomEvent('sinapsis:stain',{detail}));
+}
+function setFear(value){if(fear===value)return;fear=value;publishFearAudio();$('#scene').classList.toggle('has-fear',value);fearSorted=[...points].sort((a,b)=>fearScore(a)-fearScore(b));$('#fear-reading').hidden=!fear;$('#manual').textContent=fear?'Ocultar percepción':'Mostrar sin cámara';$('#manual').setAttribute('aria-pressed',fear)}
 $('#perception-button').onclick=()=>{const open=$('#perception-controls').hidden;$('#perception-controls').hidden=!open;$('#perception-button').setAttribute('aria-expanded',open);$('.plus').textContent=open?'−':'+'};$('#manual').onclick=()=>setFear(!fear);
 const dialog=$('#info');$('#sources').onclick=$('#about').onclick=()=>dialog.showModal();dialog.querySelector('.close').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
 let recognizer=null,stream=null,cameraTimer=null,lastVideoTime=-1,handState=createHandState();

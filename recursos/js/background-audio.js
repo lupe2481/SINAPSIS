@@ -10,13 +10,34 @@
   const save = (key, value) => { try { sessionStorage.setItem(key, value); } catch {} };
   let enabled = read('sinapsis-audio-enabled') !== 'false';
   let pending = false;
+  let stainVisible = false, stainAppearing = false, stainPending = false;
+  const stain = new Audio('recursos/audio/deep-haunting-drone.mp3');
+  stain.preload = 'auto';
+  stain.loop = true;
+  stain.volume = 0.12;
+  const playStain = async () => {
+    if (!enabled || !stainAppearing || document.hidden || stainPending || !stain.paused) return;
+    stainPending = true;
+    try { await stain.play(); if (!enabled || !stainAppearing || document.hidden) stain.pause(); }
+    catch {} finally { stainPending = false; }
+  };
+  document.addEventListener('sinapsis:stain', ({detail}) => {
+    const wasVisible = stainVisible, wasAppearing = stainAppearing;
+    stainVisible = detail.visible;
+    stainAppearing = detail.appearing;
+    if (stainVisible) { audio.pause(); effect.pause(); }
+    stain.volume = 0.12 * Math.min(1, Math.max(0, (1-detail.progress)/0.2));
+    if (stainAppearing && !wasAppearing) { stain.currentTime = 0; void playStain(); }
+    if (!stainAppearing) { stain.pause(); }
+    if (wasVisible && !stainVisible) void play();
+  });
   const effect = new Audio('recursos/audio/soft-notification.mp3');
   effect.preload = 'auto';
   effect.volume = 0.12;
   let lastEffect = -Infinity;
   document.addEventListener('sinapsis:filter-change', () => {
     const now = performance.now();
-    if (!enabled || document.hidden || now - lastEffect < 350) return;
+    if (!enabled || stainVisible || document.hidden || now - lastEffect < 350) return;
     lastEffect = now;
     effect.pause();
     effect.currentTime = 0;
@@ -30,9 +51,9 @@
     button.title = label;
   };
   const play = async () => {
-    if (!enabled || pending || document.hidden) return;
+    if (!enabled || pending || stainVisible || document.hidden) return;
     pending = true;
-    try { await audio.play(); if (!enabled || document.hidden) audio.pause(); }
+    try { await audio.play(); if (!enabled || stainVisible || document.hidden) audio.pause(); }
     catch { /* A blocked autoplay can be retried with the sound button. */ }
     finally { pending = false; update(); }
   };
@@ -48,11 +69,11 @@
   button.addEventListener('click', () => {
     enabled = !enabled;
     save('sinapsis-audio-enabled', String(enabled));
-    if (enabled) void play(); else { audio.pause(); effect.pause(); }
+    if (enabled) { void play(); void playStain(); } else { audio.pause(); effect.pause(); stain.pause(); }
     update();
   });
   const start = event => {
-    if (!event.target.closest('.ambient-audio-toggle') && enabled && audio.paused) void play();
+    if (!event.target.closest('.ambient-audio-toggle') && enabled) { if(audio.paused) void play(); void playStain(); }
   };
   document.addEventListener('pointerdown', start);
   document.addEventListener('pointerup', start);
@@ -62,10 +83,10 @@
     if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.repeat) start(event);
   });
   const remember = () => save('sinapsis-audio-position', String(audio.currentTime));
-  window.addEventListener('pagehide', () => { remember(); audio.pause(); effect.pause(); });
+  window.addEventListener('pagehide', () => { remember(); audio.pause(); effect.pause(); stain.pause(); });
   window.addEventListener('pageshow', () => { if (enabled) void play(); });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { remember(); audio.pause(); effect.pause(); } else if (enabled) void play();
+    if (document.hidden) { remember(); audio.pause(); effect.pause(); stain.pause(); } else if (enabled) { void play(); void playStain(); }
   });
   update();
   // Try immediately; gesture listeners retry if autoplay is blocked.
